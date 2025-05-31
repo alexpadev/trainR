@@ -1,6 +1,6 @@
 const Home = () => {
   return (
-    <div>
+    <div className="bg-gray-800 min-h-screen text-white text-center p-10">
       <h1>Welcome to trainR</h1>
       <p>
         trainR is a platform designed to help you track your fitness journey, set goals, and stay motivated.
