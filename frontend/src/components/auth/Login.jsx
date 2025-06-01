@@ -37,7 +37,7 @@ const Login = () => {
             return;
         }
 
-        if(password != users.password) {
+        if (!users.some(user => user.password === password)) {
             console.error("Incorrect password");
             return;
         }
