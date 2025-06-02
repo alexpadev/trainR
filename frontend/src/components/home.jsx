@@ -11,7 +11,7 @@ const Home = () => {
 
   const getWeekDates = () => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7;
+    const offsetHoy = (today.getDay() + 6) % 7; 
     const monday = new Date(today);
     monday.setDate(today.getDate() - offsetHoy);
 
@@ -27,9 +27,10 @@ const Home = () => {
   const weekDates = getWeekDates();
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
-    today.getDate()
-  ).padStart(2, '0')}`;
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
+    2,
+    '0'
+  )}-${String(today.getDate()).padStart(2, '0')}`;
 
   const monthName = today
     .toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
@@ -37,7 +38,7 @@ const Home = () => {
 
   const getWeekNumberInMonth = (date) => {
     const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const firstDayIndex = (firstOfMonth.getDay() + 6) % 7;
+    const firstDayIndex = (firstOfMonth.getDay() + 6) % 7; 
     return Math.ceil((date.getDate() + firstDayIndex) / 7);
   };
 
@@ -80,7 +81,7 @@ const Home = () => {
     fetchAll();
   }, []);
 
-
+ 
   const routineByDay = {};
   weeklyRoutines.forEach((r) => {
     routineByDay[r.day_of_week] = r;
@@ -170,7 +171,7 @@ const Home = () => {
 
       <div className="grid grid-cols-7 gap-4">
         {weekDates.map((dateObj) => {
-          const jsDay = dateObj.getDay();
+          const jsDay = dateObj.getDay(); 
           const dayOfWeek = jsDay === 0 ? 7 : jsDay; 
           const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(
             2,
@@ -224,7 +225,7 @@ const Home = () => {
                       )}
                     </p>
 
-                    <div className="flex items-center">
+                    <div className="flex items-center mb-2">
                       <input
                         type="checkbox"
                         disabled={dateStr !== todayStr || !dailyEntry}
@@ -246,6 +247,13 @@ const Home = () => {
                           : 'Se puede marcar hoy'}
                       </label>
                     </div>
+
+                    <Link
+                      to={`/edit-routine/${routine.id}/${dateStr}`}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm"
+                    >
+                      Editar rutina
+                    </Link>
                   </>
                 ) : (
                   <div className="flex flex-col items-center">

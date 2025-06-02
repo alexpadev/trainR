@@ -13,6 +13,7 @@ import { UserContext } from './context/UserContext.js';
 import { useState } from 'react';
 
 import RoutineAdd from './components/routine/routineAdd.jsx';
+import RoutineEdit from './components/routine/routineEdit.jsx';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -36,9 +37,8 @@ function App() {
             {token !== null ? (
               <>
                 <Route path="/" element={<Home />} />
-
                 <Route path="/add-routine/:dayOfWeek" element={<RoutineAdd />} />
-
+                <Route path="/edit-routine/:routineId/:date" element={<RoutineEdit />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             ) : (
