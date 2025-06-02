@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -17,14 +16,12 @@ app.get('/', (req, res) => {
   res.send('TrainR backend server is running.');
 });
 
-// Rutas ya existentes
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
 
 const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 
-/* —— NUEVAS RUTAS —— */
 const muscleGroupsRouter = require('./routes/muscleGroups');
 app.use('/api/muscle-groups', muscleGroupsRouter);
 
