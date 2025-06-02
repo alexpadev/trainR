@@ -1,4 +1,3 @@
-// src/components/Home.jsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -10,10 +9,9 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 1. Obtenemos las fechas de la semana actual (lunes a domingo)
   const getWeekDates = () => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7; // lunes=0 … domingo=6
+    const offsetHoy = (today.getDay() + 6) % 7; 
     const monday = new Date(today);
     monday.setDate(today.getDate() - offsetHoy);
 
@@ -46,7 +44,6 @@ const Home = () => {
 
   const currentWeekNumber = getWeekNumberInMonth(today);
 
-  // 2. Fetch de datos: weekly-routines, weekly-routine-muscle-groups, weekly-routine-exercises, daily-entries
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -84,7 +81,6 @@ const Home = () => {
     fetchAll();
   }, []);
 
-  // 3. Construimos mapas para acceder rápidamente
   const routineByDay = {};
   weeklyRoutines.forEach((r) => {
     routineByDay[r.day_of_week] = r;
@@ -129,7 +125,6 @@ const Home = () => {
     };
   });
 
-  // 4. Marcar “completado”
   const handleCheckboxChange = async (entryId, checked) => {
     try {
       const res = await fetch(`http://localhost:3000/api/daily-entries/${entryId}`, {
@@ -150,7 +145,6 @@ const Home = () => {
     }
   };
 
-  // 5. Eliminar rutina
   const handleDeleteRoutine = async (routineIdToDelete, dateStr) => {
     const confirmar = window.confirm(
       '¿Estás seguro de que deseas eliminar esta rutina? Esto borrará también la entrada diaria asociada si existe.'
@@ -169,7 +163,6 @@ const Home = () => {
         throw new Error(data.error || 'Error eliminando la rutina');
       }
 
-      // Actualizamos estado en front-end
       setWeeklyRoutines((prev) =>
         prev.filter((r) => Number(r.id) !== Number(routineIdToDelete))
       );
@@ -229,11 +222,9 @@ const Home = () => {
           const routine = routineByDay[dayOfWeek];
           const dailyEntry = dailyByDate[dateStr];
 
-          // Comprobamos si es hoy y sí existe rutina
           const isToday = dateStr === todayStr;
           const highlightToday = isToday && routine;
 
-          // Formateamos “Lunes, 2 de junio de 2025”
           const formattedDate = dateObj
             .toLocaleDateString('es-ES', {
               weekday: 'long',
