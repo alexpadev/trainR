@@ -10,8 +10,7 @@ const RoutineAdd = () => {
 
   const [routineType, setRoutineType] = useState('upper');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
-  const [selectedExercises, setSelectedExercises] = useState([]); 
-
+  const [selectedExercises, setSelectedExercises] = useState([]);
   const [comida, setComida] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -21,13 +20,12 @@ const RoutineAdd = () => {
       try {
         const [mgRes, exRes] = await Promise.all([
           fetch('http://localhost:3000/api/muscle-groups'),
-          fetch('http://localhost:3000/api/exercises')
+          fetch('http://localhost:3000/api/exercises'),
         ]);
         if (!mgRes.ok || !exRes.ok) {
-          throw new Error('Error cargando datos iniciales');
+          throw new Error('Error cargando datos');
         }
-        const mgData = await mgRes.json();
-        const exData = await exRes.json();
+        const [mgData, exData] = await Promise.all([mgRes.json(), exRes.json()]);
         setMuscleGroups(mgData);
         setAllExercises(exData);
       } catch (err) {
@@ -38,40 +36,38 @@ const RoutineAdd = () => {
     fetchData();
   }, []);
 
+  const filteredMuscleGroups =
+    routineType === 'fullbody'
+      ? muscleGroups
+      : muscleGroups.filter((mg) => mg.tipo === routineType);
+
   const filteredExercises = allExercises.filter((ex) =>
-    selectedMuscleGroups.includes(ex.muscle_group_id)
+    selectedMuscleGroups.includes(Number(ex.muscle_group_id))
   );
 
   const toggleMuscleGroup = (mgId) => {
     if (selectedMuscleGroups.includes(mgId)) {
-      setSelectedMuscleGroups(
-        selectedMuscleGroups.filter((id) => id !== mgId)
-      );
+      setSelectedMuscleGroups((prev) => prev.filter((id) => id !== mgId));
       setSelectedExercises((prev) =>
-        prev.filter(
-          (e) =>
-            !(
-              selectedMuscleGroups.includes(mgId) &&
-              filteredExercises.find((fe) => fe.id === e.exercise_id)?.muscle_group_id ===
-                mgId
-            )
-        )
+        prev.filter((e) => {
+          const ex = allExercises.find((ae) => Number(ae.id) === e.exercise_id);
+          return ex && Number(ex.muscle_group_id) !== mgId;
+        })
       );
     } else {
-      setSelectedMuscleGroups([...selectedMuscleGroups, mgId]);
+      setSelectedMuscleGroups((prev) => [...prev, mgId]);
     }
   };
 
   const toggleExercise = (exercise) => {
-    const exists = selectedExercises.find((e) => e.exercise_id === exercise.id);
+    const exId = Number(exercise.id);
+    const exists = selectedExercises.find((e) => e.exercise_id === exId);
     if (exists) {
-      setSelectedExercises((prev) =>
-        prev.filter((e) => e.exercise_id !== exercise.id)
-      );
+      setSelectedExercises((prev) => prev.filter((e) => e.exercise_id !== exId));
     } else {
       setSelectedExercises((prev) => [
         ...prev,
-        { exercise_id: exercise.id, series: 1, repeticiones: 10 }
+        { exercise_id: exId, series: 1, repeticiones: 10 },
       ]);
     }
   };
@@ -111,9 +107,7 @@ const RoutineAdd = () => {
     }
 
     setSubmitting(true);
-
-    const user_id = Number(localStorage.getItem('user_id')) || 1; // O la forma que guardes el user_id
-
+    const user_id = Number(localStorage.getItem('user_id')) || 1;
     const payload = {
       user_id,
       day_of_week: Number(dayOfWeek),
@@ -122,19 +116,17 @@ const RoutineAdd = () => {
       exercises: selectedExercises.map((e) => ({
         exercise_id: e.exercise_id,
         series: e.series,
-        repeticiones: e.repeticiones
+        repeticiones: e.repeticiones,
       })),
       fecha: getDateForDayOfWeek(dayOfWeek),
-      comida
+      comida,
     };
 
     try {
       const res = await fetch('http://localhost:3000/api/weekly-routines', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -148,65 +140,66 @@ const RoutineAdd = () => {
     }
   };
 
-  const dayNames = {
-    1: 'Lunes',
-    2: 'Martes',
-    3: 'Miércoles',
-    4: 'Jueves',
-    5: 'Viernes',
-    6: 'Sábado',
-    7: 'Domingo'
-  };
-
   return (
     <div className="bg-gray-800 min-h-screen text-white p-10 flex flex-col items-center">
       <h2 className="text-2xl font-semibold mb-6">
-        Añadir rutina para {dayNames[dayOfWeek] || 'día desconocido'}
+        Añadir rutina para{' '}
+        {['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][dayOfWeek]}
       </h2>
 
-      {error && (
-        <div className="mb-4 text-red-400 font-medium">{error}</div>
-      )}
+      {error && <p className="text-red-400 mb-4">{error}</p>}
 
       <form
         onSubmit={handleSubmit}
         className="bg-gray-700 p-6 rounded-lg w-full max-w-2xl space-y-6"
       >
-        <div className="">
-          <label
-            htmlFor="routineType"
-            className="block mb-2 font-medium"
-          >
+        <div>
+          <label htmlFor="routineType" className="block mb-2 font-medium">
             Tipo de rutina
           </label>
           <select
             id="routineType"
             value={routineType}
-            onChange={(e) => setRoutineType(e.target.value)}
+            onChange={(e) => {
+              setRoutineType(e.target.value);
+              setSelectedMuscleGroups([]);
+              setSelectedExercises([]);
+            }}
             className="w-full bg-gray-600 text-white p-2 rounded"
           >
             <option value="upper">Tren superior</option>
             <option value="lower">Tren inferior</option>
+            <option value="fullbody">Full body</option>
           </select>
         </div>
 
         <div>
-          <p className="mb-2 font-medium">Grupos musculares</p>
+          <p className="mb-2 font-medium">
+            Grupos musculares (
+            {routineType === 'upper'
+              ? 'Superior'
+              : routineType === 'lower'
+              ? 'Inferior'
+              : 'Full body'}
+            )
+          </p>
           <div className="grid grid-cols-3 gap-2">
-            {muscleGroups.map((mg) => (
-              <label
-                key={mg.id}
-                className="flex items-center space-x-2"
-              >
+            {filteredMuscleGroups.map((mg) => (
+              <label key={mg.id} className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={selectedMuscleGroups.includes(mg.id)}
-                  onChange={() => toggleMuscleGroup(mg.id)}
+                  checked={selectedMuscleGroups.includes(Number(mg.id))}
+                  onChange={() => toggleMuscleGroup(Number(mg.id))}
                   className="h-4 w-4 text-green-500"
                 />
                 <span className="capitalize">{mg.nombre}</span>
               </label>
             ))}
+            {filteredMuscleGroups.length === 0 && (
+              <p className="italic text-gray-300 col-span-3">
+                No hay grupos para este tipo
+              </p>
+            )}
           </div>
         </div>
 
@@ -219,15 +212,12 @@ const RoutineAdd = () => {
           ) : (
             <div className="space-y-4">
               {filteredExercises.map((ex) => {
-                const isChecked = selectedExercises.some(
-                  (e) => e.exercise_id === ex.id
-                );
-                const detail = selectedExercises.find(
-                  (e) => e.exercise_id === ex.id
-                );
+                const exId = Number(ex.id);
+                const isChecked = selectedExercises.some((e) => e.exercise_id === exId);
+                const detail = selectedExercises.find((e) => e.exercise_id === exId);
                 return (
                   <div
-                    key={ex.id}
+                    key={exId}
                     className="bg-gray-600 p-3 rounded flex flex-col md:flex-row md:items-center md:justify-between"
                   >
                     <div className="flex items-center space-x-2">
@@ -237,7 +227,7 @@ const RoutineAdd = () => {
                         onChange={() => toggleExercise(ex)}
                         className="h-4 w-4 text-green-500"
                       />
-                      <span>{ex.nombre} </span>
+                      <span>{ex.nombre}</span>
                     </div>
                     {isChecked && detail && (
                       <div className="mt-2 md:mt-0 flex space-x-4">
@@ -248,11 +238,7 @@ const RoutineAdd = () => {
                             min="1"
                             value={detail.series}
                             onChange={(e) =>
-                              updateExerciseDetail(
-                                ex.id,
-                                'series',
-                                e.target.value
-                              )
+                              updateExerciseDetail(exId, 'series', e.target.value)
                             }
                             className="w-16 text-black p-1 rounded"
                           />
@@ -264,11 +250,7 @@ const RoutineAdd = () => {
                             min="1"
                             value={detail.repeticiones}
                             onChange={(e) =>
-                              updateExerciseDetail(
-                                ex.id,
-                                'repeticiones',
-                                e.target.value
-                              )
+                              updateExerciseDetail(exId, 'repeticiones', e.target.value)
                             }
                             className="w-16 text-black p-1 rounded"
                           />
@@ -290,7 +272,7 @@ const RoutineAdd = () => {
             id="comida"
             value={comida}
             onChange={(e) => setComida(e.target.value)}
-            placeholder="Ej. Ensalada de pollo y arroz integral"
+            placeholder="Ej. Ensalada de pollo con arroz"
             className="w-full bg-gray-600 text-white p-2 rounded h-24 resize-none"
           />
         </div>
@@ -299,9 +281,7 @@ const RoutineAdd = () => {
           type="submit"
           disabled={submitting}
           className={`w-full py-2 rounded ${
-            submitting
-              ? 'bg-gray-500 cursor-not-allowed'
-              : 'bg-green-500 hover:bg-green-600'
+            submitting ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'
           }`}
         >
           {submitting ? 'Guardando…' : 'Crear rutina completa'}

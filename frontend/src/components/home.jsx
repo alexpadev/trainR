@@ -11,7 +11,7 @@ const Home = () => {
 
   const getWeekDates = () => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7; 
+    const offsetHoy = (today.getDay() + 6) % 7;
     const monday = new Date(today);
     monday.setDate(today.getDate() - offsetHoy);
 
@@ -89,23 +89,23 @@ const Home = () => {
 
   const muscleGroupsByRoutine = {};
   muscleGroupLinks.forEach((link) => {
-    const wrId = link.weekly_routine_id;
+    const wrId = Number(link.weekly_routine_id);
     if (!muscleGroupsByRoutine[wrId]) muscleGroupsByRoutine[wrId] = [];
     muscleGroupsByRoutine[wrId].push({
-      id: link.muscle_group_id,
+      id: Number(link.muscle_group_id),
       nombre: link.muscle_group_name,
     });
   });
 
   const exercisesByRoutine = {};
   exerciseLinks.forEach((link) => {
-    const wrId = link.weekly_routine_id;
+    const wrId = Number(link.weekly_routine_id);
     if (!exercisesByRoutine[wrId]) exercisesByRoutine[wrId] = [];
     exercisesByRoutine[wrId].push({
-      id: link.exercise_id,
+      id: Number(link.exercise_id),
       nombre: link.exercise_name,
-      series: link.series,
-      repeticiones: link.repeticiones,
+      series: Number(link.series),
+      repeticiones: Number(link.repeticiones),
     });
   });
 
@@ -197,12 +197,17 @@ const Home = () => {
                 {routine ? (
                   <>
                     <p className="font-medium mb-1">
-                      Tipo: {routine.routine_type === 'upper' ? 'Tren superior' : 'Tren inferior'}
+                      Tipo:{' '}
+                      {routine.routine_type === 'upper'
+                        ? 'Tren superior'
+                        : routine.routine_type === 'lower'
+                        ? 'Tren inferior'
+                        : 'Full body'}
                     </p>
 
                     <p className="font-medium mb-1">Grupos musculares:</p>
                     <ul className="list-disc list-inside mb-2">
-                      {muscleGroupsByRoutine[routine.id]?.map((mg) => (
+                      {muscleGroupsByRoutine[Number(routine.id)]?.map((mg) => (
                         <li key={mg.id} className="capitalize">
                           {mg.nombre}
                         </li>
@@ -211,7 +216,7 @@ const Home = () => {
 
                     <p className="font-medium mb-1">Ejercicios:</p>
                     <ul className="list-disc list-inside mb-2">
-                      {exercisesByRoutine[routine.id]?.map((ex) => (
+                      {exercisesByRoutine[Number(routine.id)]?.map((ex) => (
                         <li key={ex.id}>
                           {ex.nombre} – {ex.series}×{ex.repeticiones}
                         </li>
