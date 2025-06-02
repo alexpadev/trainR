@@ -13,7 +13,7 @@ const RoutineAdd = () => {
   // 2) Estados del formulario
   const [routineType, setRoutineType] = useState('upper');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
-  const [selectedExercises, setSelectedExercises] = useState([]);
+  const [selectedExercises, setSelectedExercises] = useState([]); 
   const [desayuno, setDesayuno] = useState('');
   const [almuerzo, setAlmuerzo] = useState('');
   const [merienda, setMerienda] = useState('');
@@ -55,11 +55,11 @@ const RoutineAdd = () => {
     selectedMuscleGroups.includes(Number(ex.muscle_group_id))
   );
 
-  // 6) Estado auxiliar para cambios en selección
+  // 6) Manejo de selección/desselección de grupo muscular
   const toggleMuscleGroup = (mgId) => {
     if (selectedMuscleGroups.includes(mgId)) {
-      // Si ya estaba seleccionado, lo quitamos y además desmarcamos los ejercicios de ese grupo
       setSelectedMuscleGroups((prev) => prev.filter((id) => id !== mgId));
+      // Además, desmarcamos los ejercicios de ese grupo
       setSelectedExercises((prev) =>
         prev.filter((e) => {
           const ex = allExercises.find((ae) => Number(ae.id) === e.exercise_id);
@@ -71,6 +71,7 @@ const RoutineAdd = () => {
     }
   };
 
+  // 7) Manejo de selección/desselección de ejercicio
   const toggleExercise = (exercise) => {
     const exId = Number(exercise.id);
     const exists = selectedExercises.find((e) => e.exercise_id === exId);
@@ -84,6 +85,7 @@ const RoutineAdd = () => {
     }
   };
 
+  // 8) Actualizar series o repeticiones de un ejercicio ya seleccionado
   const updateExerciseDetail = (exerciseId, field, value) => {
     setSelectedExercises((prev) =>
       prev.map((e) =>
@@ -92,7 +94,7 @@ const RoutineAdd = () => {
     );
   };
 
-  // 7) Función para calcular la fecha real en base al día de la semana
+  // 9) Función para calcular la fecha real en base al día de la semana
   const getDateForDayOfWeek = (targetDay) => {
     const today = new Date();
     const offsetHoy = (today.getDay() + 6) % 7; // lunes=0…domingo=6
@@ -103,10 +105,21 @@ const RoutineAdd = () => {
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dd = String(targetDate.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return `${yyyy}-${mm}-${dd}`; // formato "YYYY-MM-DD"
   };
 
-  // 8) Al enviar el formulario, armamos el payload y hacemos POST
+  // 9b) Formatear la fecha obtenida como en el edit
+  const rawDate = getDateForDayOfWeek(dayOfWeek);
+  const formattedDate = rawDate
+    ? new Date(rawDate).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).replace(/^./, (str) => str.toUpperCase())
+    : '';
+
+  // 10) Al enviar el formulario, armamos el payload y hacemos POST
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -132,7 +145,7 @@ const RoutineAdd = () => {
         series: e.series,
         repeticiones: e.repeticiones,
       })),
-      fecha: getDateForDayOfWeek(dayOfWeek),
+      fecha: rawDate, // usamos rawDate ("YYYY-MM-DD") para el backend
       desayuno: desayuno || null,
       comida: almuerzo || null,
       merienda: merienda || null,
@@ -157,22 +170,34 @@ const RoutineAdd = () => {
     }
   };
 
+  // Mapeo de nombres de días (ya no hace falta usarlo para el título)
+  const dayNames = [
+    '',
+    'Lunes',
+    'Martes',
+    'Miércoles',
+    'Jueves',
+    'Viernes',
+    'Sábado',
+    'Domingo',
+  ];
+
   return (
-    <div className="bg-gray-800 min-h-screen text-white p-10 flex flex-col items-center">
-      {/* Título con el día de la semana */}
-      <h2 className="text-2xl font-semibold mb-6 text-center text-gray-100">
-        {['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][dayOfWeek]}
+    <div className="bg-gray-800 min-h-screen text-white p-4 flex flex-col items-center">
+      {/* --------------- Título con fecha formateada --------------- */}
+      <h2 className="text-xl font-semibold mb-4 text-center text-gray-100 px-2">
+        {formattedDate || 'Añadir rutina'}
       </h2>
 
-      {error && <p className="text-red-400 mb-4">{error}</p>}
+      {error && <p className="text-red-400 text-center mb-4">{error}</p>}
 
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-700 p-6 rounded-lg w-full max-w-2xl space-y-6"
+        className="bg-gray-700 p-4 rounded-lg w-full max-w-lg space-y-6"
       >
         {/* 1) Selección del tipo de rutina */}
         <div>
-          <label htmlFor="routineType" className="block mb-2 font-medium">
+          <label htmlFor="routineType" className="block mb-2 font-medium text-gray-200">
             Tipo de rutina
           </label>
           <select
@@ -183,7 +208,7 @@ const RoutineAdd = () => {
               setSelectedMuscleGroups([]);
               setSelectedExercises([]);
             }}
-            className="w-full bg-gray-600 text-white p-2 rounded"
+            className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
             <option value="upper">Tren superior</option>
             <option value="lower">Tren inferior</option>
@@ -193,7 +218,7 @@ const RoutineAdd = () => {
 
         {/* 2) Multi-selector de grupos musculares */}
         <div>
-          <p className="mb-2 font-medium">
+          <p className="mb-2 font-medium text-gray-200">
             Grupos musculares (
             {routineType === 'upper'
               ? 'Superior'
@@ -202,45 +227,47 @@ const RoutineAdd = () => {
               : 'Full body'}
             )
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {filteredMuscleGroups.map((mg) => (
-              <label key={mg.id} className="flex items-center space-x-2">
+              <label
+                key={mg.id}
+                className="flex items-center space-x-2 bg-gray-600 p-2 rounded cursor-pointer"
+              >
                 <input
                   type="checkbox"
                   checked={selectedMuscleGroups.includes(Number(mg.id))}
                   onChange={() => toggleMuscleGroup(Number(mg.id))}
                   className="h-4 w-4 text-green-500"
                 />
-                <span className="capitalize">{mg.nombre}</span>
+                <span className="capitalize text-gray-100">{mg.nombre}</span>
               </label>
             ))}
             {filteredMuscleGroups.length === 0 && (
-              <p className="italic text-gray-300 col-span-3">
+              <p className="italic text-gray-300 col-span-full">
                 No hay grupos para este tipo
               </p>
             )}
           </div>
         </div>
 
-        {/* 3) Listado de ejercicios filtrados */}
+        {/* 3) Listado de ejercicios */}
         <div>
-          <p className="mb-2 font-medium">Ejercicios</p>
+          <p className="mb-2 font-medium text-gray-200">Ejercicios</p>
           {filteredExercises.length === 0 ? (
             <p className="italic text-gray-300">
               Selecciona primero un grupo muscular para ver ejercicios.
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredExercises.map((ex) => {
                 const exId = Number(ex.id);
                 const isChecked = selectedExercises.some((e) => e.exercise_id === exId);
                 const detail = selectedExercises.find((e) => e.exercise_id === exId);
 
-                // 4) BUSCAMOS el grupo muscular de este ejercicio para obtener su tipo
+                // Obtener tipo de rutina del grupo muscular de este ejercicio
                 const mg = muscleGroups.find(
                   (m) => Number(m.id) === Number(ex.muscle_group_id)
                 );
-                // Interpretamos el tipo
                 const tipoTexto =
                   mg && mg.tipo === 'upper'
                     ? 'Tren superior'
@@ -251,30 +278,29 @@ const RoutineAdd = () => {
                 return (
                   <div
                     key={exId}
-                    className="bg-gray-600 p-3 rounded flex flex-col md:flex-row md:items-center md:justify-between"
+                    className="bg-gray-600 p-3 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between"
                   >
-                    {/* Nombre + tipo de rutina */}
-                    <div className="flex items-center space-x-2">
+                    {/* En móvil: checkbox a la derecha del badge */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                      <span className="font-semibold text-gray-100">{ex.nombre}</span>
+                      {tipoTexto && (
+                        <span className="mt-1 sm:mt-0 sm:ml-2 text-xs italic text-gray-300">
+                          ({tipoTexto})
+                        </span>
+                      )}
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleExercise(ex)}
-                        className="h-4 w-4 text-green-500"
+                        className="h-4 w-4 mr-2 text-green-500 mt-2 sm:mt-0 order-last sm:order-first"
                       />
-                      <span className="font-semibold">{ex.nombre}</span>
-                      {/* AQUÍ mostramos el tipo de rutina en un texto pequeño */}
-                      {tipoTexto && (
-                        <span className="ml-2 text-xs italic text-gray-300">
-                          ({tipoTexto})
-                        </span>
-                      )}
                     </div>
 
-                    {/* Si está chequeado, mostramos series y repeticiones */}
+                    {/* Series y repeticiones si está seleccionado */}
                     {isChecked && detail && (
-                      <div className="mt-2 md:mt-0 flex space-x-4">
-                        <label className="flex items-center space-x-1">
-                          <span className="text-sm">Series:</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 sm:mt-0">
+                        <label className="flex items-center space-x-1 mb-2 sm:mb-0">
+                          <span className="text-sm text-gray-200">Series:</span>
                           <input
                             type="number"
                             min="1"
@@ -282,11 +308,11 @@ const RoutineAdd = () => {
                             onChange={(e) =>
                               updateExerciseDetail(exId, 'series', e.target.value)
                             }
-                            className="w-10 rounded text-sm mr-2 bg-gray-700 px-1"
+                            className="w-12 rounded text-sm bg-gray-700 text-white px-1 py-0.5 focus:outline-none"
                           />
                         </label>
                         <label className="flex items-center space-x-1">
-                          <span className="text-sm">Reps:</span>
+                          <span className="text-sm text-gray-200">Reps:</span>
                           <input
                             type="number"
                             min="1"
@@ -294,7 +320,7 @@ const RoutineAdd = () => {
                             onChange={(e) =>
                               updateExerciseDetail(exId, 'repeticiones', e.target.value)
                             }
-                            className="w-10 rounded text-sm bg-gray-700 px-1"
+                            className="w-12 rounded text-sm bg-gray-700 text-white px-1 py-0.5 focus:outline-none"
                           />
                         </label>
                       </div>
@@ -308,9 +334,10 @@ const RoutineAdd = () => {
 
         {/* 4) Campos de comidas (Desayuno, Comida, Merienda, Cena) */}
         <div className="space-y-4">
-          <div className="flex space-x-4 w-full">
-            <div className="w-1/2">
-              <label htmlFor="desayuno" className="block mb-2 font-medium">
+          <div className="flex flex-col md:flex-row md:space-x-4 w-full">
+            {/* Desayuno */}
+            <div className="w-full md:w-1/2">
+              <label htmlFor="desayuno" className="block mb-2 font-medium text-gray-200">
                 Desayuno
               </label>
               <input
@@ -319,11 +346,12 @@ const RoutineAdd = () => {
                 value={desayuno}
                 onChange={(e) => setDesayuno(e.target.value)}
                 placeholder="Ej. Avena con fruta"
-                className="w-full bg-gray-600 text-white p-2 rounded"
+                className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
-            <div className="w-1/2">
-              <label htmlFor="almuerzo" className="block mb-2 font-medium">
+            {/* Comida */}
+            <div className="w-full md:w-1/2 mt-4 md:mt-0">
+              <label htmlFor="almuerzo" className="block mb-2 font-medium text-gray-200">
                 Comida
               </label>
               <input
@@ -332,14 +360,15 @@ const RoutineAdd = () => {
                 value={almuerzo}
                 onChange={(e) => setAlmuerzo(e.target.value)}
                 placeholder="Ej. Arroz con pollo"
-                className="w-full bg-gray-600 text-white p-2 rounded"
+                className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
           </div>
 
-          <div className="flex space-x-4 w-full">
-            <div className="w-1/2">
-              <label htmlFor="merienda" className="block mb-2 font-medium">
+          <div className="flex flex-col md:flex-row md:space-x-4 w-full">
+            {/* Merienda */}
+            <div className="w-full md:w-1/2">
+              <label htmlFor="merienda" className="block mb-2 font-medium text-gray-200">
                 Merienda
               </label>
               <input
@@ -348,11 +377,12 @@ const RoutineAdd = () => {
                 value={merienda}
                 onChange={(e) => setMerienda(e.target.value)}
                 placeholder="Ej. Yogur con nueces"
-                className="w-full bg-gray-600 text-white p-2 rounded"
+                className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
-            <div className="w-1/2">
-              <label htmlFor="cena" className="block mb-2 font-medium">
+            {/* Cena */}
+            <div className="w-full md:w-1/2 mt-4 md:mt-0">
+              <label htmlFor="cena" className="block mb-2 font-medium text-gray-200">
                 Cena
               </label>
               <input
@@ -361,24 +391,31 @@ const RoutineAdd = () => {
                 value={cena}
                 onChange={(e) => setCena(e.target.value)}
                 placeholder="Ej. Ensalada con atún"
-                className="w-full bg-gray-600 text-white p-2 rounded"
+                className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
           </div>
         </div>
 
-        {/* 5) Botón de envío */}
-        <button
-          type="submit"
-          disabled={submitting}
-          className={`w-full py-2 rounded ${
-            submitting
-              ? 'bg-gray-500 cursor-not-allowed'
-              : 'mt-5 bg-violet-500 hover:bg-violet-600 cursor-pointer rounded-full transition font-semibold'
-          }`}
-        >
-          {submitting ? 'Guardando…' : 'Crear rutina'}
-        </button>
+        {/* 5) Botones Crear rutina y Cancelar */}
+        <div className="flex flex-col sm:flex-row sm:space-x-4 w-full">
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`w-full sm:w-2/3 bg-violet-500 hover:bg-violet-600 py-2 rounded-full text-white font-semibold mb-3 sm:mb-0 transition cursor-pointer ${
+              submitting ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
+          >
+            {submitting ? 'Creando…' : 'Crear rutina'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="w-full sm:w-1/3 bg-gray-800 hover:bg-gray-900 py-2 rounded-full text-gray-200 font-semibold transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
     </div>
   );
