@@ -22,3 +22,20 @@ app.use('/api/users', usersRouter);
 const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 
+const muscleGroupsRouter = require('./routes/muscleGroups');
+app.use('/api/muscle-groups', muscleGroupsRouter);
+
+const exercisesRouter = require('./routes/exercises');
+app.use('/api/exercises', exercisesRouter);
+
+const weeklyRoutinesRouter = require('./routes/weeklyRoutines');
+app.use('/api/weekly-routines', weeklyRoutinesRouter);
+
+const weeklyRoutineMuscleGroupsRouter = require('./routes/weeklyRoutineMuscleGroups');
+app.use('/api/weekly-routine-muscle-groups', weeklyRoutineMuscleGroupsRouter);
+
+const weeklyRoutineExercisesRouter = require('./routes/weeklyRoutineExercises');
+app.use('/api/weekly-routine-exercises', weeklyRoutineExercisesRouter);
+
+const dailyEntriesRouter = require('./routes/dailyEntries');
+app.use('/api/daily-entries', dailyEntriesRouter);

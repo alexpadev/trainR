@@ -1,6 +1,7 @@
 import React, { useContext } from 'react'
 import { Link } from 'react-router-dom';
 import { UserContext } from '../../context/UserContext.js';
+import {logo, exit} from './Svg.jsx'
 
 const Header = () => {
 
@@ -14,16 +15,13 @@ const Header = () => {
 
     return (
         <div className="bg-gray-800 flex justify-between items-center p-4 px-10 text-white">
-            <div>
-                <p className="font-bold">trainR</p>
+            <div className="flex items-center gap-2">
+                {logo()}
+                <p className="font-bold text-3xl">trainR</p>
             </div>
             <div>
-                {token ? (
-                    <Link to="/login" className="cursor-pointer rounded-full font-semibold hover:bg-purple-800 transition bg-purple-700 px-3 py-2" onClick={logout}>Logout</Link>
-                ) : (
-                    <Link to="/login" className="cursor-pointer rounded-full font-semibold hover:bg-purple-800 transition bg-purple-700 px-3 py-2">Login</Link>    
-                      
-                )}
+                <Link to="/login" className="cursor-pointer rounded-full font-semibold hover:bg-violet-600 transition bg-violet-500" onClick={logout}>{exit()}</Link>
+                             
             </div>
             
         </div>
