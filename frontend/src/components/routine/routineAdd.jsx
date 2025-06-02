@@ -11,7 +11,11 @@ const RoutineAdd = () => {
   const [routineType, setRoutineType] = useState('upper');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
   const [selectedExercises, setSelectedExercises] = useState([]);
-  const [comida, setComida] = useState('');
+  const [desayuno, setDesayuno] = useState('');
+  const [almuerzo, setAlmuerzo] = useState('');   
+  const [merienda, setMerienda] = useState('');
+  const [cena, setCena] = useState('');
+
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -63,7 +67,9 @@ const RoutineAdd = () => {
     const exId = Number(exercise.id);
     const exists = selectedExercises.find((e) => e.exercise_id === exId);
     if (exists) {
-      setSelectedExercises((prev) => prev.filter((e) => e.exercise_id !== exId));
+      setSelectedExercises((prev) =>
+        prev.filter((e) => e.exercise_id !== exId)
+      );
     } else {
       setSelectedExercises((prev) => [
         ...prev,
@@ -82,8 +88,8 @@ const RoutineAdd = () => {
 
   const getDateForDayOfWeek = (targetDay) => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7;
-    const offsetTarget = Number(targetDay) - 1;
+    const offsetHoy = (today.getDay() + 6) % 7; 
+    const offsetTarget = Number(targetDay) - 1; 
     const diff = offsetTarget - offsetHoy;
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + diff);
@@ -119,7 +125,10 @@ const RoutineAdd = () => {
         repeticiones: e.repeticiones,
       })),
       fecha: getDateForDayOfWeek(dayOfWeek),
-      comida,
+      desayuno: desayuno || null,
+      comida: almuerzo  || null,
+      merienda: merienda || null,
+      cena: cena || null,
     };
 
     try {
@@ -264,17 +273,58 @@ const RoutineAdd = () => {
           )}
         </div>
 
-        <div>
-          <label htmlFor="comida" className="block mb-2 font-medium">
-            Comida del día
-          </label>
-          <textarea
-            id="comida"
-            value={comida}
-            onChange={(e) => setComida(e.target.value)}
-            placeholder="Ej. Ensalada de pollo con arroz"
-            className="w-full bg-gray-600 text-white p-2 rounded h-24 resize-none"
-          />
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="desayuno" className="block mb-2 font-medium">
+              Desayuno
+            </label>
+            <textarea
+              id="desayuno"
+              value={desayuno}
+              onChange={(e) => setDesayuno(e.target.value)}
+              placeholder="Ej. Avena con fruta"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="almuerzo" className="block mb-2 font-medium">
+              Comida
+            </label>
+            <textarea
+              id="almuerzo"
+              value={almuerzo}
+              onChange={(e) => setAlmuerzo(e.target.value)}
+              placeholder="Ej. Arroz con pollo"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="merienda" className="block mb-2 font-medium">
+              Merienda
+            </label>
+            <textarea
+              id="merienda"
+              value={merienda}
+              onChange={(e) => setMerienda(e.target.value)}
+              placeholder="Ej. Yogur con nueces"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="cena" className="block mb-2 font-medium">
+              Cena
+            </label>
+            <textarea
+              id="cena"
+              value={cena}
+              onChange={(e) => setCena(e.target.value)}
+              placeholder="Ej. Ensalada con atún"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
         </div>
 
         <button

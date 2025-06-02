@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
-  const [weeklyRoutines, setWeeklyRoutines] = useState([]);
-  const [muscleGroupLinks, setMuscleGroupLinks] = useState([]);
-  const [exerciseLinks, setExerciseLinks] = useState([]);
-  const [dailyEntries, setDailyEntries] = useState([]);
+  const [weeklyRoutines, setWeeklyRoutines] = useState([]);             
+  const [muscleGroupLinks, setMuscleGroupLinks] = useState([]);          
+  const [exerciseLinks, setExerciseLinks] = useState([]);              
+  const [dailyEntries, setDailyEntries] = useState([]);                  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const getWeekDates = () => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7;
+    const offsetHoy = (today.getDay() + 6) % 7; 
     const monday = new Date(today);
     monday.setDate(today.getDate() - offsetHoy);
 
@@ -81,7 +81,7 @@ const Home = () => {
     fetchAll();
   }, []);
 
- 
+
   const routineByDay = {};
   weeklyRoutines.forEach((r) => {
     routineByDay[r.day_of_week] = r;
@@ -115,7 +115,15 @@ const Home = () => {
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
       d.getDate()
     ).padStart(2, '0')}`;
-    dailyByDate[dateKey] = entry;
+    dailyByDate[dateKey] = {
+      id: entry.id,
+      desayuno: entry.desayuno,
+      comida: entry.comida,
+      merienda: entry.merienda,
+      cena: entry.cena,
+      completed: entry.completed,
+      weekly_routine_id: entry.weekly_routine_id,
+    };
   });
 
   const handleCheckboxChange = async (entryId, checked) => {
@@ -135,6 +143,41 @@ const Home = () => {
     } catch (err) {
       console.error(err);
       alert('No se pudo actualizar el estado de completado');
+    }
+  };
+
+  const handleDeleteRoutine = async (routineIdToDelete, dateStr) => {
+    const confirmar = window.confirm(
+      '¿Estás seguro de que deseas eliminar esta rutina? Esto borrará también la entrada diaria asociada si existe.'
+    );
+    if (!confirmar) return;
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/weekly-routines/${routineIdToDelete}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error eliminando la rutina');
+      }
+
+      setWeeklyRoutines((prev) =>
+        prev.filter((r) => Number(r.id) !== Number(routineIdToDelete))
+      );
+      setDailyEntries((prev) =>
+        prev.filter((e) => {
+          const d = new Date(e.fecha);
+          const eDateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+            d.getDate()
+          ).padStart(2, '0')}`;
+          return eDateKey !== dateStr;
+        })
+      );
+
+      alert('Rutina eliminada correctamente');
+    } catch (err) {
+      console.error(err);
+      alert(`No se pudo eliminar la rutina: ${err.message}`);
     }
   };
 
@@ -223,11 +266,21 @@ const Home = () => {
                       )) || <li className="italic">Sin ejercicios</li>}
                     </ul>
 
+                    <p className="font-medium mb-1">Desayuno:</p>
+                    <p className="mb-1">
+                      {dailyEntry?.desayuno || <span className="italic">No registrado</span>}
+                    </p>
                     <p className="font-medium mb-1">Comida:</p>
+                    <p className="mb-1">
+                      {dailyEntry?.comida || <span className="italic">No registrado</span>}
+                    </p>
+                    <p className="font-medium mb-1">Merienda:</p>
+                    <p className="mb-1">
+                      {dailyEntry?.merienda || <span className="italic">No registrado</span>}
+                    </p>
+                    <p className="font-medium mb-1">Cena:</p>
                     <p className="mb-2">
-                      {dailyEntry?.comida || (
-                        <span className="italic">Sin comida registrada</span>
-                      )}
+                      {dailyEntry?.cena || <span className="italic">No registrado</span>}
                     </p>
 
                     <div className="flex items-center mb-2">
@@ -253,12 +306,21 @@ const Home = () => {
                       </label>
                     </div>
 
-                    <Link
-                      to={`/edit-routine/${routine.id}/${dateStr}`}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm"
-                    >
-                      Editar rutina
-                    </Link>
+                    <div className="flex space-x-2">
+                      <Link
+                        to={`/edit-routine/${routine.id}/${dateStr}`}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm"
+                      >
+                        Editar rutina
+                      </Link>
+
+                      <button
+                        onClick={() => handleDeleteRoutine(routine.id, dateStr)}
+                        className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm"
+                      >
+                        Eliminar rutina
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center">

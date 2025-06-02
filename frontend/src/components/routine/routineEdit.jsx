@@ -16,7 +16,10 @@ const RoutineEdit = () => {
   const [selectedExercises, setSelectedExercises] = useState([]);
 
   const [dailyEntryId, setDailyEntryId] = useState(null);
-  const [comida, setComida] = useState('');
+  const [desayuno, setDesayuno] = useState('');
+  const [almuerzo, setAlmuerzo] = useState('');
+  const [merienda, setMerienda] = useState('');
+  const [cena, setCena] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,7 +83,10 @@ const RoutineEdit = () => {
         });
         if (match) {
           setDailyEntryId(Number(match.id));
-          setComida(match.comida || '');
+          setDesayuno(match.desayuno || '');
+          setAlmuerzo(match.comida   || '');
+          setMerienda(match.merienda || '');
+          setCena(match.cena         || '');
         }
 
         setLoading(false);
@@ -211,7 +217,12 @@ const RoutineEdit = () => {
         await fetch(`http://localhost:3000/api/daily-entries/${dailyEntryId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comida }),
+          body: JSON.stringify({
+            desayuno,
+            comida: almuerzo,
+            merienda,
+            cena,
+          }),
         });
       } else {
         const user_id = Number(localStorage.getItem('user_id')) || 1;
@@ -222,7 +233,10 @@ const RoutineEdit = () => {
             user_id,
             fecha: date,
             weekly_routine_id: Number(routineId),
-            comida,
+            desayuno,
+            comida: almuerzo,
+            merienda,
+            cena,
           }),
         });
       }
@@ -375,17 +389,58 @@ const RoutineEdit = () => {
           )}
         </div>
 
-        <div>
-          <label htmlFor="comida" className="block mb-2 font-medium">
-            Comida del día
-          </label>
-          <textarea
-            id="comida"
-            value={comida}
-            onChange={(e) => setComida(e.target.value)}
-            placeholder="Ej. Arroz con pollo"
-            className="w-full bg-gray-600 text-white p-2 rounded h-24 resize-none"
-          />
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="desayuno" className="block mb-2 font-medium">
+              Desayuno
+            </label>
+            <textarea
+              id="desayuno"
+              value={desayuno}
+              onChange={(e) => setDesayuno(e.target.value)}
+              placeholder="Ej. Avena con fruta"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="almuerzo" className="block mb-2 font-medium">
+              Comida
+            </label>
+            <textarea
+              id="almuerzo"
+              value={almuerzo}
+              onChange={(e) => setAlmuerzo(e.target.value)}
+              placeholder="Ej. Arroz con pollo"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="merienda" className="block mb-2 font-medium">
+              Merienda
+            </label>
+            <textarea
+              id="merienda"
+              value={merienda}
+              onChange={(e) => setMerienda(e.target.value)}
+              placeholder="Ej. Yogur con nueces"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="cena" className="block mb-2 font-medium">
+              Cena
+            </label>
+            <textarea
+              id="cena"
+              value={cena}
+              onChange={(e) => setCena(e.target.value)}
+              placeholder="Ej. Ensalada con atún"
+              className="w-full bg-gray-600 text-white p-2 rounded h-16 resize-none"
+            />
+          </div>
         </div>
 
         {error && <p className="text-red-400">{error}</p>}

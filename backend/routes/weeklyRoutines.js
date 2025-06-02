@@ -127,18 +127,24 @@ router.post('/', async (req, res) => {
       ]);
     }
 
-    if (fecha && comida !== undefined) {
-      const insertDaily = `
-        INSERT INTO daily_entries (user_id, fecha, weekly_routine_id, comida)
-        VALUES ($1, $2, $3, $4);
-      `;
-      await client.query(insertDaily, [
-        user_id,
-        fecha,
-        weeklyRoutineId,
-        comida
-      ]);
-    }
+    if (fecha !== undefined) {
+  const { desayuno, comida: almuerzo, merienda, cena } = req.body;
+
+  const insertDaily = `
+    INSERT INTO daily_entries
+      (user_id, fecha, weekly_routine_id, desayuno, comida, merienda, cena)
+    VALUES ($1, $2, $3, $4, $5, $6, $7);
+  `;
+  await client.query(insertDaily, [
+    user_id,
+    fecha,
+    weeklyRoutineId,
+    desayuno || null,
+    almuerzo || null,
+    merienda || null,
+    cena || null,
+  ]);
+}
 
     await client.query('COMMIT');
     res.status(201).json({ message: 'Rutina semanal creada con éxito', id: weeklyRoutineId });
