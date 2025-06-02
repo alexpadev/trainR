@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { UserContext } from '../../context/UserContext.js';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
 
@@ -6,7 +8,9 @@ const Login = () => {
 
     const [users, setUsers] = useState([]);
     const [password, setPassword] = useState('');
-    const [email, setEmail] = useState([])
+    const [email, setEmail] = useState([]);
+    const {token, setToken} = useContext(UserContext);
+    const Navigate = useNavigate();
 
     const fetchUsers = async () => {
         try {
@@ -59,37 +63,42 @@ const Login = () => {
                 throw new Error('Login failed');
             }
             const data = await response.json();
-            console.log("Login successful:", data);
+            setToken(data.email)
+            localStorage.setItem("token", data.email);
+            Navigate("/");
+
 
         } catch (err) {
             console.error("Login error:", err);
         }}
 
-    return(
-        <div className="bg-gray-800 min-h-screen text-white text-center p-10">
-            <h1>Login</h1>
-            <div className="flex flex-col items-center justify-center">
+       
 
-            
+    return(
+        <div className="bg-gray-800 min-h-screen text-white text-center p-10 py-40">
+            <div className="border border-gray-600 rounded-lg p-10 max-w-lg mx-auto flex flex-col items-center justify-center">
+            <h1 className="text-gray-200 text-2xl font-semibold mb-6">Login</h1>
+           
                 <input 
                     type="email" 
                     placeholder="Email"
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
-                    className="mb-4 p-2 rounded bg-gray-700 text-white w-1/3"/>
+                    className="mb-6 p-2 rounded bg-gray-700 text-white w-5/6"/>
                 <input 
                     type="password" 
                     placeholder="Password"
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
-                    className="mb-4 p-2 rounded bg-gray-700 text-white w-1/3"/>
+                    className="mb-4 p-2 rounded bg-gray-700 text-white w-5/6"/>
                 <button
                     onClick={() => handleLogin(email, password)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    className="mt-5 bg-violet-500 hover:bg-violet-600 text-white font-bold py-2 px-4 rounded-full transition cursor-pointer w-5/6">
                     Login
                 </button>
+                <p className="mt-4 text-gray-400">Don't have an account? <a href="/register" className="font-semibold text-emerald-400 hover:text-emerald-500 transition">Register here</a></p>
+
             </div>
-            <p className="mt-4 text-gray-400">Don't have an account? <a href="/register" className="text-blue-400 hover:underline">Register</a></p>
 
         </div>
     )
