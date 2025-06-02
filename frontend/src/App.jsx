@@ -1,17 +1,10 @@
-import './App.css';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from 'react-router-dom';
+import { UserContext } from './context/UserContext.js';
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './components/home.jsx';
 import Header from './components/layout/Header.jsx';
 import Login from './components/auth/Login.jsx';
 import Register from './components/auth/Register.jsx';
-import { UserContext } from './context/UserContext.js';
-import { useState } from 'react';
-
 import RoutineAdd from './components/routine/routineAdd.jsx';
 import RoutineEdit from './components/routine/routineEdit.jsx';
 

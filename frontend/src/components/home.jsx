@@ -185,14 +185,12 @@ const Home = () => {
         })
       );
 
-      alert('Rutina eliminada correctamente');
     } catch (err) {
       console.error(err);
       alert(`No se pudo eliminar la rutina: ${err.message}`);
     }
   };
 
-  // 6. Render
   if (loading) {
     return (
       <div className="bg-gray-800 min-h-screen text-white text-center p-10">
@@ -222,11 +220,10 @@ const Home = () => {
         </p>
       </div>
 
-      {/* Rejilla de 4 columnas */}
       <div className="grid 2xl:grid-cols-4 xl:grid-cols-3 md:grid-cols-2 sm:grid-cols-1 gap-4">
         {weekDates.map((dateObj) => {
-          const jsDay = dateObj.getDay(); // 0=domingo…6=sábado
-          const dayOfWeek = jsDay === 0 ? 7 : jsDay; // lunes=1…domingo=7
+          const jsDay = dateObj.getDay();
+          const dayOfWeek = jsDay === 0 ? 7 : jsDay;
           const dateStr = `${dateObj.getFullYear()}-${String(
             dateObj.getMonth() + 1
           ).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
@@ -263,7 +260,7 @@ const Home = () => {
                     </Link>
                     <button
                       onClick={() => handleDeleteRoutine(routine.id, dateStr)}
-                      className="border-2 border-red-500 hover:bg-gray-600 text-red-400 font-semibold py-1 px-2 rounded-full cursor-pointer text-xs"
+                      className="border-2 border-red-500 hover:bg-gray-600 text-red-400 font-semibold py-1 px-2 rounded-full cursor-pointer text-xs transition"
                     >
                       Eliminar
                     </button>
@@ -286,7 +283,7 @@ const Home = () => {
 
                     <ul className="space-x-2 list-inside mb-2 text-gray-100 flex">
                       {muscleGroupsByRoutine[Number(routine.id)]?.map((mg) => (
-                        <li key={mg.id} className="capitalize border rounded-full px-2 py-1 text-sm">
+                        <li key={mg.id} className="capitalize border rounded-full px-2 py-1 text-xs">
                           {mg.nombre}
                         </li>
                       )) || <li className="italic">Sin grupos</li>}
@@ -334,10 +331,10 @@ const Home = () => {
                       />
                       <label className="ml-2">
                         {dateStr === todayStr
-                          ? 'Marcar como completado'
+                          ? 'Completado'
                           : dateStr < todayStr
-                          ? 'No editable (día pasado)'
-                          : 'Se puede marcar hoy'}
+                          ? 'No disponible'
+                          : 'No disponible'}
                       </label>
                     </div>
                   </>
