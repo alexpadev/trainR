@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom'; 
+import { UserContext } from '../../context/UserContext';
 
 const Register = () => {
   const API = 'http://localhost:3000';
@@ -11,6 +12,7 @@ const Register = () => {
     confirmPassword: ''
   });
   const { username, email, password, confirmPassword } = formData;
+  const {token,setToken} = useContext(UserContext);
 
   const [users, setUsers] = useState([]);
   const Navigate = useNavigate();
@@ -73,7 +75,8 @@ const Register = () => {
       }
       const data = await response.json();
       console.log("Registro completado con éxito:", data);
-      Navigate("/login");
+      setToken(data.email);
+      localStorage.setItem("token", data.email);
     } catch (err) {
       console.error("Error al registrar:", err);
     }
