@@ -1,0 +1,314 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+
+const RoutineAdd = () => {
+  const { dayOfWeek } = useParams();
+  const navigate = useNavigate();
+
+  const [muscleGroups, setMuscleGroups] = useState([]);
+  const [allExercises, setAllExercises] = useState([]);
+
+  const [routineType, setRoutineType] = useState('upper');
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
+  const [selectedExercises, setSelectedExercises] = useState([]); 
+
+  const [comida, setComida] = useState('');
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [mgRes, exRes] = await Promise.all([
+          fetch('http://localhost:3000/api/muscle-groups'),
+          fetch('http://localhost:3000/api/exercises')
+        ]);
+        if (!mgRes.ok || !exRes.ok) {
+          throw new Error('Error cargando datos iniciales');
+        }
+        const mgData = await mgRes.json();
+        const exData = await exRes.json();
+        setMuscleGroups(mgData);
+        setAllExercises(exData);
+      } catch (err) {
+        console.error(err);
+        setError('No se pudieron cargar grupos musculares o ejercicios');
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredExercises = allExercises.filter((ex) =>
+    selectedMuscleGroups.includes(ex.muscle_group_id)
+  );
+
+  const toggleMuscleGroup = (mgId) => {
+    if (selectedMuscleGroups.includes(mgId)) {
+      setSelectedMuscleGroups(
+        selectedMuscleGroups.filter((id) => id !== mgId)
+      );
+      setSelectedExercises((prev) =>
+        prev.filter(
+          (e) =>
+            !(
+              selectedMuscleGroups.includes(mgId) &&
+              filteredExercises.find((fe) => fe.id === e.exercise_id)?.muscle_group_id ===
+                mgId
+            )
+        )
+      );
+    } else {
+      setSelectedMuscleGroups([...selectedMuscleGroups, mgId]);
+    }
+  };
+
+  const toggleExercise = (exercise) => {
+    const exists = selectedExercises.find((e) => e.exercise_id === exercise.id);
+    if (exists) {
+      setSelectedExercises((prev) =>
+        prev.filter((e) => e.exercise_id !== exercise.id)
+      );
+    } else {
+      setSelectedExercises((prev) => [
+        ...prev,
+        { exercise_id: exercise.id, series: 1, repeticiones: 10 }
+      ]);
+    }
+  };
+
+  const updateExerciseDetail = (exerciseId, field, value) => {
+    setSelectedExercises((prev) =>
+      prev.map((e) =>
+        e.exercise_id === exerciseId ? { ...e, [field]: Number(value) } : e
+      )
+    );
+  };
+
+  const getDateForDayOfWeek = (targetDay) => {
+    const today = new Date();
+    const offsetHoy = (today.getDay() + 6) % 7;
+    const offsetTarget = Number(targetDay) - 1;
+    const diff = offsetTarget - offsetHoy;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDate.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (selectedMuscleGroups.length === 0) {
+      setError('Debes seleccionar al menos un grupo muscular');
+      return;
+    }
+    if (selectedExercises.length === 0) {
+      setError('Debes seleccionar al menos un ejercicio');
+      return;
+    }
+
+    setSubmitting(true);
+
+    const user_id = Number(localStorage.getItem('user_id')) || 1; // O la forma que guardes el user_id
+
+    const payload = {
+      user_id,
+      day_of_week: Number(dayOfWeek),
+      routine_type: routineType,
+      muscle_group_ids: selectedMuscleGroups,
+      exercises: selectedExercises.map((e) => ({
+        exercise_id: e.exercise_id,
+        series: e.series,
+        repeticiones: e.repeticiones
+      })),
+      fecha: getDateForDayOfWeek(dayOfWeek),
+      comida
+    };
+
+    try {
+      const res = await fetch('http://localhost:3000/api/weekly-routines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al crear rutina');
+      }
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+      setSubmitting(false);
+    }
+  };
+
+  const dayNames = {
+    1: 'Lunes',
+    2: 'Martes',
+    3: 'Miércoles',
+    4: 'Jueves',
+    5: 'Viernes',
+    6: 'Sábado',
+    7: 'Domingo'
+  };
+
+  return (
+    <div className="bg-gray-800 min-h-screen text-white p-10 flex flex-col items-center">
+      <h2 className="text-2xl font-semibold mb-6">
+        Añadir rutina para {dayNames[dayOfWeek] || 'día desconocido'}
+      </h2>
+
+      {error && (
+        <div className="mb-4 text-red-400 font-medium">{error}</div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-gray-700 p-6 rounded-lg w-full max-w-2xl space-y-6"
+      >
+        <div className="">
+          <label
+            htmlFor="routineType"
+            className="block mb-2 font-medium"
+          >
+            Tipo de rutina
+          </label>
+          <select
+            id="routineType"
+            value={routineType}
+            onChange={(e) => setRoutineType(e.target.value)}
+            className="w-full bg-gray-600 text-white p-2 rounded"
+          >
+            <option value="upper">Tren superior</option>
+            <option value="lower">Tren inferior</option>
+          </select>
+        </div>
+
+        <div>
+          <p className="mb-2 font-medium">Grupos musculares</p>
+          <div className="grid grid-cols-3 gap-2">
+            {muscleGroups.map((mg) => (
+              <label
+                key={mg.id}
+                className="flex items-center space-x-2"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedMuscleGroups.includes(mg.id)}
+                  onChange={() => toggleMuscleGroup(mg.id)}
+                  className="h-4 w-4 text-green-500"
+                />
+                <span className="capitalize">{mg.nombre}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 font-medium">Ejercicios</p>
+          {filteredExercises.length === 0 ? (
+            <p className="italic text-gray-300">
+              Selecciona primero un grupo muscular para ver ejercicios.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {filteredExercises.map((ex) => {
+                const isChecked = selectedExercises.some(
+                  (e) => e.exercise_id === ex.id
+                );
+                const detail = selectedExercises.find(
+                  (e) => e.exercise_id === ex.id
+                );
+                return (
+                  <div
+                    key={ex.id}
+                    className="bg-gray-600 p-3 rounded flex flex-col md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleExercise(ex)}
+                        className="h-4 w-4 text-green-500"
+                      />
+                      <span>{ex.nombre} </span>
+                    </div>
+                    {isChecked && detail && (
+                      <div className="mt-2 md:mt-0 flex space-x-4">
+                        <label className="flex items-center space-x-1">
+                          <span>Series:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={detail.series}
+                            onChange={(e) =>
+                              updateExerciseDetail(
+                                ex.id,
+                                'series',
+                                e.target.value
+                              )
+                            }
+                            className="w-16 text-black p-1 rounded"
+                          />
+                        </label>
+                        <label className="flex items-center space-x-1">
+                          <span>Reps:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={detail.repeticiones}
+                            onChange={(e) =>
+                              updateExerciseDetail(
+                                ex.id,
+                                'repeticiones',
+                                e.target.value
+                              )
+                            }
+                            className="w-16 text-black p-1 rounded"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="comida" className="block mb-2 font-medium">
+            Comida del día
+          </label>
+          <textarea
+            id="comida"
+            value={comida}
+            onChange={(e) => setComida(e.target.value)}
+            placeholder="Ej. Ensalada de pollo y arroz integral"
+            className="w-full bg-gray-600 text-white p-2 rounded h-24 resize-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className={`w-full py-2 rounded ${
+            submitting
+              ? 'bg-gray-500 cursor-not-allowed'
+              : 'bg-green-500 hover:bg-green-600'
+          }`}
+        >
+          {submitting ? 'Guardando…' : 'Crear rutina completa'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default RoutineAdd;

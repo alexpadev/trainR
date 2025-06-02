@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { use } from 'react';
+import { useNavigate } from 'react-router-dom'; // Si quieres redirigir tras registro
 
 const Register = () => {
 
@@ -14,6 +14,7 @@ const Register = () => {
 
     const { username, email, password, confirmPassword } = formData;
     const [users, setUsers] = useState([]);
+    const Navigate = useNavigate(); // si vas a redirigir
 
     const fetchUsers = async () => {
         try {
@@ -28,11 +29,10 @@ const Register = () => {
             }
             const data = await response.json();
             setUsers(data);
-            console.log(data);
         } catch (err) {
             console.error("Error fetching users:", err);
         }
-    }
+    };
 
     useEffect(() => {
         fetchUsers();
@@ -56,7 +56,7 @@ const Register = () => {
             return;
         }
 
-         if (users.some(user => user.username === username)) {
+        if (users.some(user => user.username === username)) {
             console.error("This username is already taken");
             return;
         }
@@ -74,52 +74,64 @@ const Register = () => {
             }
             const data = await response.json();
             console.log("Registration successful:", data);
+            // Opcional: redirigir al login o a otra ruta
+            Navigate("/login");
         } catch (err) {
             console.error("Registration error:", err);
         }
-    }
+    };
 
+    return (
+        <div className="bg-gray-800 min-h-screen text-white text-center p-10 py-40">
+            {/* Contenedor centrado con borde y padding igual al de Login.jsx */}
+            <div className="border border-gray-600 rounded-lg p-10 max-w-lg mx-auto flex flex-col items-center justify-center">
+                <h1 className="text-gray-200 text-2xl font-semibold mb-6">Register</h1>
 
-    return(
-        <div className="bg-gray-800 min-h-screen text-white text-center p-10">
-            <h1>Register</h1>
-            <form onSubmit={handleRegister} className="flex flex-col items-center">
                 <input
                     type="text"
                     placeholder="Username"
                     value={username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="mb-2 p-2 rounded bg-gray-700 text-white w-64"
+                    className="mb-6 p-2 rounded bg-gray-700 text-white w-5/6"
                 />
                 <input
                     type="email"
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mb-2 p-2 rounded bg-gray-700 text-white w-64"
+                    className="mb-6 p-2 rounded bg-gray-700 text-white w-5/6"
                 />
                 <input
                     type="password"
                     placeholder="Password"
                     value={password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="mb-2 p-2 rounded bg-gray-700 text-white w-64"
+                    className="mb-6 p-2 rounded bg-gray-700 text-white w-5/6"
                 />
                 <input
                     type="password"
                     placeholder="Confirm Password"
                     value={confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="mb-4 p-2 rounded bg-gray-700 text-white w-64"
+                    className="mb-4 p-2 rounded bg-gray-700 text-white w-5/6"
                 />
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+
+                <button
+                    onClick={handleRegister}
+                    className="mt-5 bg-violet-500 hover:bg-violet-600 text-white font-bold py-2 px-4 rounded-full transition cursor-pointer w-5/6"
+                >
                     Register
                 </button>
-            </form>
-            <p className="mt-4 text-gray-400">Already have an account? <a href="/login" className="text-blue-400 hover:underline">Login</a></p>
 
-        
+                <p className="mt-4 text-gray-400">
+                    Already have an account?{' '}
+                    <a href="/login" className="font-semibold text-emerald-400 hover:text-emerald-500 transition">
+                        Login here
+                    </a>
+                </p>
+            </div>
         </div>
-    )
-}
+    );
+};
+
 export default Register;
