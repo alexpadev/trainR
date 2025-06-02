@@ -58,114 +58,92 @@ router.post('/', async (req, res) => {
     user_id,
     day_of_week,
     routine_type,
-    muscle_group_ids,
-    exercises,
-    fecha,
-    comida
+    muscle_group_ids, 
+    exercises,     
+    fecha,           
+    desayuno,
+    comida,
+    merienda,
+    cena,
   } = req.body;
 
-  if (
-    !user_id ||
-    !day_of_week ||
-    !routine_type ||
-    !Array.isArray(muscle_group_ids) ||
-    muscle_group_ids.length === 0 ||
-    !Array.isArray(exercises) ||
-    exercises.length === 0
-  ) {
-    return res.status(400).json({
-      error:
-        'Faltan campos obligatorios: user_id, day_of_week, routine_type, muscle_group_ids (array), exercises (array)'
-    });
+  if (!user_id || !day_of_week || !routine_type || !fecha) {
+    return res
+      .status(400)
+      .json({ error: 'Faltan campos obligatorios: user_id, day_of_week, routine_type, fecha' });
+  }
+  if (!Array.isArray(muscle_group_ids) || muscle_group_ids.length === 0) {
+    return res.status(400).json({ error: 'Debes enviar al menos un grupo muscular' });
+  }
+  if (!Array.isArray(exercises) || exercises.length === 0) {
+    return res.status(400).json({ error: 'Debes enviar al menos un ejercicio con series y repeticiones' });
   }
 
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
     const insertWR = `
       INSERT INTO weekly_routines (user_id, day_of_week, routine_type)
       VALUES ($1, $2, $3)
       RETURNING id;
     `;
-    const wrResult = await client.query(insertWR, [
-      user_id,
-      day_of_week,
-      routine_type
-    ]);
-    const weeklyRoutineId = wrResult.rows[0].id;
+    const wrRes = await pool.query(insertWR, [user_id, day_of_week, routine_type]);
+    const newWrId = wrRes.rows[0].id;
 
-    const insertWrmgText = `
-      INSERT INTO weekly_routine_muscle_groups (weekly_routine_id, muscle_group_id)
-      VALUES ($1, $2);
-    `;
     for (const mgId of muscle_group_ids) {
-      await client.query(insertWrmgText, [weeklyRoutineId, mgId]);
+      await pool.query(
+        `INSERT INTO weekly_routine_muscle_groups
+           (weekly_routine_id, muscle_group_id)
+         VALUES ($1, $2);`,
+        [newWrId, mgId]
+      );
     }
 
-    const insertWreText = `
-      INSERT INTO weekly_routine_exercises
-        (weekly_routine_id, exercise_id, series, repeticiones)
-      VALUES ($1, $2, $3, $4);
-    `;
     for (const ex of exercises) {
-      const { exercise_id, series, repeticiones } = ex;
-      if (
-        typeof exercise_id !== 'number' ||
-        typeof series !== 'number' ||
-        typeof repeticiones !== 'number'
-      ) {
-        throw new Error(
-          'Cada elemento de "exercises" debe tener { exercise_id, series, repeticiones } numéricos'
-        );
-      }
-      await client.query(insertWreText, [
-        weeklyRoutineId,
-        exercise_id,
-        series,
-        repeticiones
-      ]);
+      await pool.query(
+        `INSERT INTO weekly_routine_exercises
+           (weekly_routine_id, exercise_id, series, repeticiones)
+         VALUES ($1, $2, $3, $4);`,
+        [newWrId, ex.exercise_id, ex.series, ex.repeticiones]
+      );
     }
 
-    if (fecha !== undefined) {
-  const { desayuno, comida: almuerzo, merienda, cena } = req.body;
+    const upsertDaily = `
+      INSERT INTO daily_entries
+        (user_id, fecha, weekly_routine_id, desayuno, comida, merienda, cena)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (user_id, fecha)
+      DO UPDATE
+        SET weekly_routine_id     = EXCLUDED.weekly_routine_id,
+            desayuno              = EXCLUDED.desayuno,
+            comida                = EXCLUDED.comida,
+            merienda              = EXCLUDED.merienda,
+            cena                  = EXCLUDED.cena,
+            fecha_actualizacion   = NOW();
+    `;
+    await pool.query(upsertDaily, [
+      user_id,
+      fecha,
+      newWrId,
+      desayuno   || null,
+      comida     || null,
+      merienda   || null,
+      cena       || null,
+    ]);
 
-  const insertDaily = `
-    INSERT INTO daily_entries
-      (user_id, fecha, weekly_routine_id, desayuno, comida, merienda, cena)
-    VALUES ($1, $2, $3, $4, $5, $6, $7);
-  `;
-  await client.query(insertDaily, [
-    user_id,
-    fecha,
-    weeklyRoutineId,
-    desayuno || null,
-    almuerzo || null,
-    merienda || null,
-    cena || null,
-  ]);
-}
-
-    await client.query('COMMIT');
-    res.status(201).json({ message: 'Rutina semanal creada con éxito', id: weeklyRoutineId });
+    return res.status(201).json({
+      id: newWrId,
+      message: 'Weekly routine creada correctamente',
+    });
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Error creando weekly_routine completo:', err);
-
+    console.error('Error creando weekly_routine:', err);
     if (err.code === '23505') {
       return res
         .status(409)
         .json({ error: 'Ya existe una rutina para este user_id y day_of_week' });
     }
     if (err.code === '23503') {
-      return res
-        .status(400)
-        .json({ error: 'Algún ID referenciado no existe (user_id, muscle_group_id o exercise_id)' });
+      return res.status(400).json({ error: 'FK inválido (user_id, exercise_id o muscle_group_id)' });
     }
-
-    res.status(500).json({ error: 'Error interno al crear rutina semanal' });
-  } finally {
-    client.release();
+    return res.status(500).json({ error: 'Error al crear weekly_routine' });
   }
 });
 
@@ -214,7 +192,7 @@ router.put('/:id', async (req, res) => {
         .json({ error: 'Ya existe una rutina para este user_id y day_of_week' });
     }
     if (err.code === '23503') {
-      return res.status(400).json({ error: 'Algún dato de FK no existe (user_id posiblemente)' });
+      return res.status(400).json({ error: 'Algún dato de FK no existe' });
     }
     res.status(500).json({ error: 'Error al actualizar weekly_routine' });
   }

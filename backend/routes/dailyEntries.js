@@ -67,22 +67,24 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { desayuno, comida, merienda, cena } = req.body;
+  const { desayuno, comida, merienda, cena, completed } = req.body;
 
   if (
     desayuno === undefined &&
     comida === undefined &&
     merienda === undefined &&
-    cena === undefined
+    cena === undefined &&
+    completed === undefined
   ) {
     return res.status(400).json({
-      error: 'Se requiere al menos uno de los campos: desayuno, comida, merienda, cena',
+      error: 'Se requiere al menos uno de los campos: desayuno, comida, merienda, cena, completed',
     });
   }
 
   const fields = [];
   const values = [];
   let idx = 1;
+
   if (desayuno !== undefined) {
     fields.push(`desayuno = $${idx++}`);
     values.push(desayuno);
@@ -99,10 +101,15 @@ router.put('/:id', async (req, res) => {
     fields.push(`cena = $${idx++}`);
     values.push(cena);
   }
+  if (completed !== undefined) {
+    fields.push(`completed = $${idx++}`);
+    values.push(completed);
+  }
   fields.push(`fecha_actualizacion = NOW()`);
 
   values.push(id);
-  const updateText = `
+
+  const updateQuery = `
     UPDATE daily_entries
     SET ${fields.join(', ')}
     WHERE id = $${idx}
@@ -110,7 +117,7 @@ router.put('/:id', async (req, res) => {
   `;
 
   try {
-    const result = await pool.query(updateText, values);
+    const result = await pool.query(updateQuery, values);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Entrada diaria no encontrada' });
     }

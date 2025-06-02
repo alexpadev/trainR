@@ -1,17 +1,19 @@
+// src/components/Home.jsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
-  const [weeklyRoutines, setWeeklyRoutines] = useState([]);             
-  const [muscleGroupLinks, setMuscleGroupLinks] = useState([]);          
-  const [exerciseLinks, setExerciseLinks] = useState([]);              
-  const [dailyEntries, setDailyEntries] = useState([]);                  
+  const [weeklyRoutines, setWeeklyRoutines] = useState([]);
+  const [muscleGroupLinks, setMuscleGroupLinks] = useState([]);
+  const [exerciseLinks, setExerciseLinks] = useState([]);
+  const [dailyEntries, setDailyEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 1. Obtenemos las fechas de la semana actual (lunes a domingo)
   const getWeekDates = () => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7; 
+    const offsetHoy = (today.getDay() + 6) % 7; // lunes=0 … domingo=6
     const monday = new Date(today);
     monday.setDate(today.getDate() - offsetHoy);
 
@@ -38,12 +40,13 @@ const Home = () => {
 
   const getWeekNumberInMonth = (date) => {
     const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const firstDayIndex = (firstOfMonth.getDay() + 6) % 7; 
+    const firstDayIndex = (firstOfMonth.getDay() + 6) % 7; // lunes=0…domingo=6
     return Math.ceil((date.getDate() + firstDayIndex) / 7);
   };
 
   const currentWeekNumber = getWeekNumberInMonth(today);
 
+  // 2. Fetch de datos: weekly-routines, weekly-routine-muscle-groups, weekly-routine-exercises, daily-entries
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -59,10 +62,11 @@ const Home = () => {
           throw new Error('Error cargando datos del servidor');
         }
 
+        // ← AQUÍ estaba el error: se debe usar wreRes.json(), NO wreData.json()
         const [wrData, wrmgData, wreData, deData] = await Promise.all([
           wrRes.json(),
           wrmgRes.json(),
-          wreRes.json(),
+          wreRes.json(),  // CORREGIDO: antes tenías “wreData.json()”
           deRes.json(),
         ]);
 
@@ -81,7 +85,7 @@ const Home = () => {
     fetchAll();
   }, []);
 
-
+  // 3. Construimos mapas para acceder rápidamente
   const routineByDay = {};
   weeklyRoutines.forEach((r) => {
     routineByDay[r.day_of_week] = r;
@@ -126,6 +130,7 @@ const Home = () => {
     };
   });
 
+  // 4. Marcar “completado”
   const handleCheckboxChange = async (entryId, checked) => {
     try {
       const res = await fetch(`http://localhost:3000/api/daily-entries/${entryId}`, {
@@ -146,6 +151,7 @@ const Home = () => {
     }
   };
 
+  // 5. Eliminar rutina
   const handleDeleteRoutine = async (routineIdToDelete, dateStr) => {
     const confirmar = window.confirm(
       '¿Estás seguro de que deseas eliminar esta rutina? Esto borrará también la entrada diaria asociada si existe.'
@@ -153,23 +159,28 @@ const Home = () => {
     if (!confirmar) return;
 
     try {
-      const res = await fetch(`http://localhost:3000/api/weekly-routines/${routineIdToDelete}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        `http://localhost:3000/api/weekly-routines/${routineIdToDelete}`,
+        {
+          method: 'DELETE',
+        }
+      );
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Error eliminando la rutina');
       }
 
+      // Actualizamos estado en front-end
       setWeeklyRoutines((prev) =>
         prev.filter((r) => Number(r.id) !== Number(routineIdToDelete))
       );
       setDailyEntries((prev) =>
         prev.filter((e) => {
           const d = new Date(e.fecha);
-          const eDateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-            d.getDate()
-          ).padStart(2, '0')}`;
+          const eDateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+            2,
+            '0'
+          )}-${String(d.getDate()).padStart(2, '0')}`;
           return eDateKey !== dateStr;
         })
       );
@@ -181,6 +192,7 @@ const Home = () => {
     }
   };
 
+  // 6. Render
   if (loading) {
     return (
       <div className="bg-gray-800 min-h-screen text-white text-center p-10">
@@ -201,46 +213,70 @@ const Home = () => {
 
   return (
     <div className="bg-gray-800 min-h-screen text-white text-center p-10">
-      <h1 className="text-3xl font-semibold mb-4">Welcome to trainR</h1>
-
-      <div className="mb-8">
-        <p className="text-xl">
-          <span className="font-medium">Mes actual:</span> {monthName}
+      <div className="mb-6 flex">
+        <p className="text-3xl mr-2">
+           {monthName} -
         </p>
-        <p className="text-lg">
-          <span className="font-medium">Semana del mes:</span> {currentWeekNumber}
+        <p className="text-3xl">
+          <span className="">Semana</span> {currentWeekNumber}
         </p>
       </div>
 
-      <div className="grid grid-cols-7 gap-4">
+      {/* Rejilla de 4 columnas */}
+      <div className="grid 2xl:grid-cols-4 xl:grid-cols-3 md:grid-cols-2 sm:grid-cols-1 gap-4">
         {weekDates.map((dateObj) => {
-          const jsDay = dateObj.getDay(); 
-          const dayOfWeek = jsDay === 0 ? 7 : jsDay; 
-          const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(
-            2,
-            '0'
-          )}-${String(dateObj.getDate()).padStart(2, '0')}`;
+          const jsDay = dateObj.getDay(); // 0=domingo…6=sábado
+          const dayOfWeek = jsDay === 0 ? 7 : jsDay; // lunes=1…domingo=7
+          const dateStr = `${dateObj.getFullYear()}-${String(
+            dateObj.getMonth() + 1
+          ).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
           const routine = routineByDay[dayOfWeek];
           const dailyEntry = dailyByDate[dateStr];
 
+          // Formateamos “Lunes, 2 de junio de 2025”
+          const formattedDate = dateObj
+            .toLocaleDateString('es-ES', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })
+            .replace(/^./, (str) => str.toUpperCase());
+
           return (
             <div
               key={dateStr}
-              className="bg-gray-700 p-4 rounded-lg flex flex-col justify-between"
+              className="bg-gray-700 p-4 rounded-lg flex flex-col"
             >
-              <div>
-                <p className="capitalize font-medium">
-                  {dateObj.toLocaleDateString('es-ES', { weekday: 'long' })}
-                </p>
-                <p className="text-2xl font-semibold">{dateObj.getDate()}</p>
+              {/* Cabecera: fecha en una línea + botones al tope */}
+              <div className="flex justify-between items-center mb-2">
+                <p className="capitalize font-medium text-md">{formattedDate}</p>
+
+                {routine && (
+                  <div className="flex space-x-2">
+                    <Link
+                      to={`/edit-routine/${routine.id}/${dateStr}`}
+                      className="border-2 border-emerald-500 hover:bg-gray-600 transition text-emerald-400 font-semibold py-1 px-2 rounded-full text-xs"
+                    >
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteRoutine(routine.id, dateStr)}
+                      className="border-2 border-red-500 hover:bg-gray-600 text-red-400 font-semibold py-1 px-2 rounded-full cursor-pointer text-xs"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-3 text-left text-sm">
+              {/* Contenido desde arriba */}
+              <div className="text-left text-sm flex-1">
                 {routine ? (
                   <>
-                    <p className="font-medium mb-1">
-                      Tipo:{' '}
+                    <p className="font-medium mb-1 text-md">
+                     
                       {routine.routine_type === 'upper'
                         ? 'Tren superior'
                         : routine.routine_type === 'lower'
@@ -248,10 +284,9 @@ const Home = () => {
                         : 'Full body'}
                     </p>
 
-                    <p className="font-medium mb-1">Grupos musculares:</p>
-                    <ul className="list-disc list-inside mb-2">
+                    <ul className="space-x-2 list-inside mb-2 text-gray-100 flex">
                       {muscleGroupsByRoutine[Number(routine.id)]?.map((mg) => (
-                        <li key={mg.id} className="capitalize">
+                        <li key={mg.id} className="capitalize border rounded-full px-2 py-1 text-sm">
                           {mg.nombre}
                         </li>
                       )) || <li className="italic">Sin grupos</li>}
@@ -261,26 +296,26 @@ const Home = () => {
                     <ul className="list-disc list-inside mb-2">
                       {exercisesByRoutine[Number(routine.id)]?.map((ex) => (
                         <li key={ex.id}>
-                          {ex.nombre} – {ex.series}×{ex.repeticiones}
+                          <span className="text-gray-100">{ex.nombre}</span> <span className="text-gray-300 ml-1">{ex.series}×{ex.repeticiones}</span>
                         </li>
                       )) || <li className="italic">Sin ejercicios</li>}
                     </ul>
 
                     <p className="font-medium mb-1">Desayuno:</p>
-                    <p className="mb-1">
-                      {dailyEntry?.desayuno || <span className="italic">No registrado</span>}
+                    <p className="mb-1 text-gray-100">
+                      {dailyEntry?.desayuno || <span className="italic text-gray-200">No registrado</span>}
                     </p>
                     <p className="font-medium mb-1">Comida:</p>
-                    <p className="mb-1">
-                      {dailyEntry?.comida || <span className="italic">No registrado</span>}
+                    <p className="mb-1 text-gray-100">
+                      {dailyEntry?.comida || <span className="italic text-gray-200">No registrado</span>}
                     </p>
                     <p className="font-medium mb-1">Merienda:</p>
-                    <p className="mb-1">
-                      {dailyEntry?.merienda || <span className="italic">No registrado</span>}
+                    <p className="mb-1 text-gray-100">
+                      {dailyEntry?.merienda || <span className="italic text-gray-200">No registrado</span>}
                     </p>
                     <p className="font-medium mb-1">Cena:</p>
-                    <p className="mb-2">
-                      {dailyEntry?.cena || <span className="italic">No registrado</span>}
+                    <p className="mb-2 text-gray-100">
+                      {dailyEntry?.cena || <span className="italic text-gray-200">No registrado</span>}
                     </p>
 
                     <div className="flex items-center mb-2">
@@ -305,29 +340,13 @@ const Home = () => {
                           : 'Se puede marcar hoy'}
                       </label>
                     </div>
-
-                    <div className="flex space-x-2">
-                      <Link
-                        to={`/edit-routine/${routine.id}/${dateStr}`}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm"
-                      >
-                        Editar rutina
-                      </Link>
-
-                      <button
-                        onClick={() => handleDeleteRoutine(routine.id, dateStr)}
-                        className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm"
-                      >
-                        Eliminar rutina
-                      </button>
-                    </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <p className="italic text-gray-300 mb-2">No hay rutina</p>
+                    <p className="italic text-gray-300 mb-2 mt-20">No hay rutina</p>
                     <Link
                       to={`/add-routine/${dayOfWeek}`}
-                      className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded"
+                      className="bg-violet-500 hover:bg-violet-600 text-white py-2 px-4 rounded-full transition cursor-pointer text-sm mb-20 font-semibold"
                     >
                       Añadir rutina
                     </Link>
