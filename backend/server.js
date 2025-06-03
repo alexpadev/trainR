@@ -6,8 +6,9 @@ const pool = require('./database/db');
 require('dotenv').config();
 
 app.use(cors({
-  origin: 'https://trainR.onrender.com'
+  origin: 'https://trainr-ru6t.onrender.com'
 }));
+
 app.use(express.json());
 
 app.listen(port, () => {
