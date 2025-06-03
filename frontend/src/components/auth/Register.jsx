@@ -1,10 +1,10 @@
+// Register.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import { UserContext } from '../../context/UserContext';
 
 const Register = () => {
   const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
-
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -12,10 +12,9 @@ const Register = () => {
     confirmPassword: ''
   });
   const { username, email, password, confirmPassword } = formData;
-  const {token,setToken} = useContext(UserContext);
-
+  const { token, setToken } = useContext(UserContext);
   const [users, setUsers] = useState([]);
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
 
   const fetchUsers = async () => {
     try {
@@ -43,22 +42,18 @@ const Register = () => {
     e.preventDefault();
 
     if (!username || !email || !password || !confirmPassword) {
-      console.error("All fields are required");
       return;
     }
 
     if (password !== confirmPassword) {
-      console.error("Passwords do not match");
       return;
     }
 
     if (users.some(user => user.email === email)) {
-      console.error("Email already exists");
       return;
     }
 
     if (users.some(user => user.username === username)) {
-      console.error("This username is already taken");
       return;
     }
 
@@ -74,9 +69,8 @@ const Register = () => {
         throw new Error('Registration failed');
       }
       const data = await response.json();
-      console.log("Registro completado con éxito:", data);
       setToken(data.email);
-      localStorage.setItem("token", data.email);
+      navigate('/');
     } catch (err) {
       console.error("Error al registrar:", err);
     }
