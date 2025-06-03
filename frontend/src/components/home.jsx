@@ -40,7 +40,7 @@ const Home = () => {
 
   const getWeekNumberInMonth = (date) => {
     const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const firstDayIndex = (firstOfMonth.getDay() + 6) % 7; // lunes=0…domingo=6
+    const firstDayIndex = (firstOfMonth.getDay() + 6) % 7; 
     return Math.ceil((date.getDate() + firstDayIndex) / 7);
   };
 

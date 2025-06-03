@@ -203,7 +203,6 @@ const RoutineAdd = () => {
           </select>
         </div>
 
-        {/* 2) Multi-selector de grupos musculares */}
         <div>
           <p className="mb-2 font-medium text-gray-200">
             Grupos musculares (
@@ -237,7 +236,6 @@ const RoutineAdd = () => {
           </div>
         </div>
 
-        {/* 3) Listado de ejercicios */}
         <div>
           <p className="mb-2 font-medium text-gray-200">Ejercicios</p>
           {filteredExercises.length === 0 ? (

@@ -1,4 +1,3 @@
-// App.jsx
 import { UserContext } from './context/UserContext.js';
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
