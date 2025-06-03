@@ -5,7 +5,9 @@ const port = process.env.PORT || 3000;
 const pool = require('./database/db');
 require('dotenv').config();
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://trainR.onrender.com'
+}));
 app.use(express.json());
 
 app.listen(port, () => {
