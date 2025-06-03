@@ -1,5 +1,6 @@
+// Register.jsx
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { Link, useNavigate } from 'react-router-dom'; 
 import { UserContext } from '../../context/UserContext';
 
 const Register = () => {
@@ -12,10 +13,10 @@ const Register = () => {
     confirmPassword: ''
   });
   const { username, email, password, confirmPassword } = formData;
-  const {token,setToken} = useContext(UserContext);
+  const { setToken } = useContext(UserContext);
 
   const [users, setUsers] = useState([]);
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
 
   const fetchUsers = async () => {
     try {
@@ -77,6 +78,7 @@ const Register = () => {
       console.log("Registro completado con éxito:", data);
       setToken(data.email);
       localStorage.setItem("token", data.email);
+      navigate('/');
     } catch (err) {
       console.error("Error al registrar:", err);
     }
@@ -124,10 +126,10 @@ const Register = () => {
         </button>
 
         <p className="mt-4 text-gray-400">
-          Ya tienes una cuenta?{' '}
-          <a href="/login" className="font-semibold text-emerald-400 hover:text-emerald-500 transition">
+          Ya tienes una cuenta?{" "}
+          <Link to="/login" className="font-semibold text-emerald-400 hover:text-emerald-500 transition">
             Inicia sesión aquí
-          </a>
+          </Link>
         </p>
       </div>
     </div>

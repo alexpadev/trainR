@@ -1,16 +1,16 @@
+// Login.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../../context/UserContext.js';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
-
-  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api"
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
 
   const [users, setUsers] = useState([]);
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const { token, setToken } = useContext(UserContext);
-  const Navigate = useNavigate();
+  const { setToken } = useContext(UserContext);
+  const navigate = useNavigate();
 
   const fetchUsers = async () => {
     try {
@@ -65,7 +65,7 @@ const Login = () => {
       const data = await response.json();
       setToken(data.email);
       localStorage.setItem("token", data.email);
-      Navigate("/");
+      navigate("/");
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
     }
@@ -97,13 +97,13 @@ const Login = () => {
           Iniciar sesión
         </button>
         <p className="mt-4 text-gray-400">
-          Todavía no tienes una cuenta?{' '}
-          <a
-            href="/register"
+          Todavía no tienes una cuenta?{" "}
+          <Link
+            to="/register"
             className="font-semibold text-emerald-400 hover:text-emerald-500 transition"
           >
             Regístrate aquí
-          </a>
+          </Link>
         </p>
       </div>
     </div>
