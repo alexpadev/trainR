@@ -5,6 +5,9 @@ const RoutineEdit = () => {
   const { routineId, date } = useParams();
   const navigate = useNavigate();
 
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
+
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -27,8 +30,8 @@ const RoutineEdit = () => {
         setLoading(true);
 
         const [mgRes, exRes] = await Promise.all([
-          fetch('http://localhost:3000/api/muscle-groups'),
-          fetch('http://localhost:3000/api/exercises'),
+          fetch(`${API}/muscle-groups`),
+          fetch(`${API}/exercises`),
         ]);
         if (!mgRes.ok || !exRes.ok) {
           throw new Error('Error cargando datos maestros');
@@ -37,14 +40,14 @@ const RoutineEdit = () => {
         setMuscleGroups(mgData);
         setAllExercises(exData);
 
-        const wrRes = await fetch(`http://localhost:3000/api/weekly-routines/${routineId}`);
+        const wrRes = await fetch(`${API}/weekly-routines/${routineId}`);
         if (!wrRes.ok) {
           throw new Error('Rutina no encontrada');
         }
         const wrData = await wrRes.json();
         setRoutineType(wrData.routine_type);
 
-        const wrmgRes = await fetch('http://localhost:3000/api/weekly-routine-muscle-groups');
+        const wrmgRes = await fetch(`${API}/weekly-routine-muscle-groups`);
         if (!wrmgRes.ok) {
           throw new Error('Error cargando asociaciones de grupos musculares');
         }
@@ -54,7 +57,7 @@ const RoutineEdit = () => {
           .map((link) => Number(link.muscle_group_id));
         setSelectedMuscleGroups(myMgLinks);
 
-        const wreRes = await fetch('http://localhost:3000/api/weekly-routine-exercises');
+        const wreRes = await fetch(`${API}/weekly-routine-exercises`);
         if (!wreRes.ok) {
           throw new Error('Error cargando asociaciones de ejercicios');
         }
@@ -68,7 +71,7 @@ const RoutineEdit = () => {
           }));
         setSelectedExercises(myExLinks);
 
-        const deRes = await fetch('http://localhost:3000/api/daily-entries');
+        const deRes = await fetch(`${API}/daily-entries`);
         if (!deRes.ok) {
           throw new Error('Error cargando entradas diarias');
         }
@@ -158,7 +161,7 @@ const RoutineEdit = () => {
     }
 
     try {
-      const updateWR = await fetch(`http://localhost:3000/api/weekly-routines/${routineId}`, {
+      const updateWR = await fetch(`${API}/weekly-routines/${routineId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ routine_type: routineType }),
@@ -168,19 +171,19 @@ const RoutineEdit = () => {
         throw new Error(data.error || 'Error actualizando rutina');
       }
 
-      const wrmgRes = await fetch('http://localhost:3000/api/weekly-routine-muscle-groups');
+      const wrmgRes = await fetch(`${API}/weekly-routine-muscle-groups`);
       const wrmgData = await wrmgRes.json();
       const prevMgLinks = wrmgData.filter(
         (link) => Number(link.weekly_routine_id) === Number(routineId)
       );
       for (const link of prevMgLinks) {
         await fetch(
-          `http://localhost:3000/api/weekly-routine-muscle-groups/${routineId}/${link.muscle_group_id}`,
+          `${API}/weekly-routine-muscle-groups/${routineId}/${link.muscle_group_id}`,
           { method: 'DELETE' }
         );
       }
       for (const mgId of selectedMuscleGroups) {
-        await fetch('http://localhost:3000/api/weekly-routine-muscle-groups', {
+        await fetch(`${API}/weekly-routine-muscle-groups`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -190,18 +193,18 @@ const RoutineEdit = () => {
         });
       }
 
-      const wreRes = await fetch('http://localhost:3000/api/weekly-routine-exercises');
+      const wreRes = await fetch(`${API}/weekly-routine-exercises`);
       const wreData = await wreRes.json();
       const prevExLinks = wreData.filter(
         (link) => Number(link.weekly_routine_id) === Number(routineId)
       );
       for (const link of prevExLinks) {
-        await fetch(`http://localhost:3000/api/weekly-routine-exercises/${link.id}`, {
+        await fetch(`${API}/weekly-routine-exercises/${link.id}`, {
           method: 'DELETE',
         });
       }
       for (const ex of selectedExercises) {
-        await fetch('http://localhost:3000/api/weekly-routine-exercises', {
+        await fetch(`${API}/weekly-routine-exercises`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -214,7 +217,7 @@ const RoutineEdit = () => {
       }
 
       if (dailyEntryId) {
-        await fetch(`http://localhost:3000/api/daily-entries/${dailyEntryId}`, {
+        await fetch(`${API}/daily-entries/${dailyEntryId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -226,7 +229,7 @@ const RoutineEdit = () => {
         });
       } else {
         const user_id = Number(localStorage.getItem('user_id')) || 1;
-        await fetch('http://localhost:3000/api/daily-entries', {
+        await fetch(`${API}/daily-entries`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

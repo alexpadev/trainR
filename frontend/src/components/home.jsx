@@ -9,6 +9,8 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api"
+  
   const getWeekDates = () => {
     const today = new Date();
     const offsetHoy = (today.getDay() + 6) % 7; 
@@ -49,10 +51,10 @@ const Home = () => {
       try {
         setLoading(true);
         const [wrRes, wrmgRes, wreRes, deRes] = await Promise.all([
-          fetch('http://localhost:3000/api/weekly-routines'),
-          fetch('http://localhost:3000/api/weekly-routine-muscle-groups'),
-          fetch('http://localhost:3000/api/weekly-routine-exercises'),
-          fetch('http://localhost:3000/api/daily-entries'),
+          fetch(`${API}/weekly-routines`),
+          fetch(`${API}/weekly-routine-muscle-groups`),
+          fetch(`${API}/weekly-routine-exercises`),
+          fetch(`${API}/daily-entries`),
         ]);
 
         if (!wrRes.ok || !wrmgRes.ok || !wreRes.ok || !deRes.ok) {
@@ -127,7 +129,7 @@ const Home = () => {
 
   const handleCheckboxChange = async (entryId, checked) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/daily-entries/${entryId}`, {
+      const res = await fetch(`${API}/daily-entries/${entryId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed: checked }),
@@ -153,7 +155,7 @@ const Home = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/weekly-routines/${routineIdToDelete}`,
+        `${API}/weekly-routines/${routineIdToDelete}`,
         {
           method: 'DELETE',
         }

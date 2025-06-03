@@ -1,4 +1,3 @@
-// src/components/routine/routineAdd.jsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -6,11 +5,12 @@ const RoutineAdd = () => {
   const { dayOfWeek } = useParams();
   const navigate = useNavigate();
 
-  // 1) Estado para grupos musculares y ejercicios
+    const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
+
+
   const [muscleGroups, setMuscleGroups] = useState([]);
   const [allExercises, setAllExercises] = useState([]);
 
-  // 2) Estados del formulario
   const [routineType, setRoutineType] = useState('upper');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
   const [selectedExercises, setSelectedExercises] = useState([]); 
@@ -22,13 +22,12 @@ const RoutineAdd = () => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // 3) Cargar muscleGroups y allExercises al montar el componente
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [mgRes, exRes] = await Promise.all([
-          fetch('http://localhost:3000/api/muscle-groups'),
-          fetch('http://localhost:3000/api/exercises'),
+          fetch(`${API}/muscle-groups`),
+          fetch(`${API}/exercises`),
         ]);
         if (!mgRes.ok || !exRes.ok) {
           throw new Error('Error cargando datos');
@@ -44,22 +43,18 @@ const RoutineAdd = () => {
     fetchData();
   }, []);
 
-  // 4) Filtrar grupos según rutina seleccionada (upper, lower o fullbody)
   const filteredMuscleGroups =
     routineType === 'fullbody'
       ? muscleGroups
       : muscleGroups.filter((mg) => mg.tipo === routineType);
 
-  // 5) Filtrar ejercicios que correspondan a los grupos musculares seleccionados
   const filteredExercises = allExercises.filter((ex) =>
     selectedMuscleGroups.includes(Number(ex.muscle_group_id))
   );
 
-  // 6) Manejo de selección/desselección de grupo muscular
   const toggleMuscleGroup = (mgId) => {
     if (selectedMuscleGroups.includes(mgId)) {
       setSelectedMuscleGroups((prev) => prev.filter((id) => id !== mgId));
-      // Además, desmarcamos los ejercicios de ese grupo
       setSelectedExercises((prev) =>
         prev.filter((e) => {
           const ex = allExercises.find((ae) => Number(ae.id) === e.exercise_id);
@@ -71,7 +66,6 @@ const RoutineAdd = () => {
     }
   };
 
-  // 7) Manejo de selección/desselección de ejercicio
   const toggleExercise = (exercise) => {
     const exId = Number(exercise.id);
     const exists = selectedExercises.find((e) => e.exercise_id === exId);
@@ -85,7 +79,6 @@ const RoutineAdd = () => {
     }
   };
 
-  // 8) Actualizar series o repeticiones de un ejercicio ya seleccionado
   const updateExerciseDetail = (exerciseId, field, value) => {
     setSelectedExercises((prev) =>
       prev.map((e) =>
@@ -94,21 +87,19 @@ const RoutineAdd = () => {
     );
   };
 
-  // 9) Función para calcular la fecha real en base al día de la semana
   const getDateForDayOfWeek = (targetDay) => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7; // lunes=0…domingo=6
-    const offsetTarget = Number(targetDay) - 1; // lunes=0…domingo=6
+    const offsetHoy = (today.getDay() + 6) % 7; 
+    const offsetTarget = Number(targetDay) - 1; 
     const diff = offsetTarget - offsetHoy;
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + diff);
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dd = String(targetDate.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`; // formato "YYYY-MM-DD"
+    return `${yyyy}-${mm}-${dd}`; 
   };
 
-  // 9b) Formatear la fecha obtenida como en el edit
   const rawDate = getDateForDayOfWeek(dayOfWeek);
   const formattedDate = rawDate
     ? new Date(rawDate).toLocaleDateString('es-ES', {
@@ -119,7 +110,6 @@ const RoutineAdd = () => {
       }).replace(/^./, (str) => str.toUpperCase())
     : '';
 
-  // 10) Al enviar el formulario, armamos el payload y hacemos POST
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -145,7 +135,7 @@ const RoutineAdd = () => {
         series: e.series,
         repeticiones: e.repeticiones,
       })),
-      fecha: rawDate, // usamos rawDate ("YYYY-MM-DD") para el backend
+      fecha: rawDate, 
       desayuno: desayuno || null,
       comida: almuerzo || null,
       merienda: merienda || null,
@@ -153,7 +143,7 @@ const RoutineAdd = () => {
     };
 
     try {
-      const res = await fetch('http://localhost:3000/api/weekly-routines', {
+      const res = await fetch(`${API}/weekly-routines`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -170,7 +160,6 @@ const RoutineAdd = () => {
     }
   };
 
-  // Mapeo de nombres de días (ya no hace falta usarlo para el título)
   const dayNames = [
     '',
     'Lunes',
@@ -184,7 +173,6 @@ const RoutineAdd = () => {
 
   return (
     <div className="bg-gray-800 min-h-screen text-white p-4 flex flex-col items-center">
-      {/* --------------- Título con fecha formateada --------------- */}
       <h2 className="text-xl font-semibold mb-4 text-center text-gray-100 px-2">
         {formattedDate || 'Añadir rutina'}
       </h2>
@@ -195,7 +183,6 @@ const RoutineAdd = () => {
         onSubmit={handleSubmit}
         className="bg-gray-700 p-4 rounded-lg w-full max-w-lg space-y-6"
       >
-        {/* 1) Selección del tipo de rutina */}
         <div>
           <label htmlFor="routineType" className="block mb-2 font-medium text-gray-200">
             Tipo de rutina
@@ -264,7 +251,6 @@ const RoutineAdd = () => {
                 const isChecked = selectedExercises.some((e) => e.exercise_id === exId);
                 const detail = selectedExercises.find((e) => e.exercise_id === exId);
 
-                // Obtener tipo de rutina del grupo muscular de este ejercicio
                 const mg = muscleGroups.find(
                   (m) => Number(m.id) === Number(ex.muscle_group_id)
                 );
@@ -280,7 +266,6 @@ const RoutineAdd = () => {
                     key={exId}
                     className="bg-gray-600 p-3 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between"
                   >
-                    {/* En móvil: checkbox a la derecha del badge */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                       <span className="font-semibold text-gray-100">{ex.nombre}</span>
                       {tipoTexto && (
@@ -296,7 +281,6 @@ const RoutineAdd = () => {
                       />
                     </div>
 
-                    {/* Series y repeticiones si está seleccionado */}
                     {isChecked && detail && (
                       <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 sm:mt-0">
                         <label className="flex items-center space-x-1 mb-2 sm:mb-0">
@@ -332,10 +316,8 @@ const RoutineAdd = () => {
           )}
         </div>
 
-        {/* 4) Campos de comidas (Desayuno, Comida, Merienda, Cena) */}
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row md:space-x-4 w-full">
-            {/* Desayuno */}
             <div className="w-full md:w-1/2">
               <label htmlFor="desayuno" className="block mb-2 font-medium text-gray-200">
                 Desayuno
@@ -349,7 +331,6 @@ const RoutineAdd = () => {
                 className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
-            {/* Comida */}
             <div className="w-full md:w-1/2 mt-4 md:mt-0">
               <label htmlFor="almuerzo" className="block mb-2 font-medium text-gray-200">
                 Comida
@@ -366,7 +347,6 @@ const RoutineAdd = () => {
           </div>
 
           <div className="flex flex-col md:flex-row md:space-x-4 w-full">
-            {/* Merienda */}
             <div className="w-full md:w-1/2">
               <label htmlFor="merienda" className="block mb-2 font-medium text-gray-200">
                 Merienda
@@ -380,7 +360,6 @@ const RoutineAdd = () => {
                 className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
-            {/* Cena */}
             <div className="w-full md:w-1/2 mt-4 md:mt-0">
               <label htmlFor="cena" className="block mb-2 font-medium text-gray-200">
                 Cena
@@ -397,7 +376,6 @@ const RoutineAdd = () => {
           </div>
         </div>
 
-        {/* 5) Botones Crear rutina y Cancelar */}
         <div className="flex flex-col sm:flex-row sm:space-x-4 w-full">
           <button
             type="submit"

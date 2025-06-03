@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../../context/UserContext';
 
 const Register = () => {
-  const API = 'http://localhost:3000';
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
 
   const [formData, setFormData] = useState({
     username: '',
@@ -19,7 +19,7 @@ const Register = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API}/api/users`, {
+      const response = await fetch(`${API}/users`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -63,7 +63,7 @@ const Register = () => {
     }
 
     try {
-      const response = await fetch(`${API}/api/auth/register`, {
+      const response = await fetch(`${API}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

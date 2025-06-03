@@ -3,7 +3,8 @@ import { UserContext } from '../../context/UserContext.js';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const API = 'http://localhost:3000';
+
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api"
 
   const [users, setUsers] = useState([]);
   const [password, setPassword] = useState('');
@@ -13,7 +14,7 @@ const Login = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API}/api/users`, {
+      const response = await fetch(`${API}/users`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -51,7 +52,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch(`${API}/api/auth/login`, {
+      const response = await fetch(`${API}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
