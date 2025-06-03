@@ -1,15 +1,16 @@
-// Login.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../../context/UserContext.js';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
+
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api"
+
   const [users, setUsers] = useState([]);
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const { token, setToken } = useContext(UserContext);
-  const navigate = useNavigate();
+  const Navigate = useNavigate();
 
   const fetchUsers = async () => {
     try {
@@ -24,6 +25,7 @@ const Login = () => {
       }
       const data = await response.json();
       setUsers(data);
+      console.log(data);
     } catch (err) {
       console.error("Error fetching users:", err);
     }
@@ -35,14 +37,17 @@ const Login = () => {
 
   const handleLogin = async (email, password) => {
     if (!email || !password) {
+      console.error("Se requiere email y contraseña");
       return;
     }
 
     if (!users.some(user => user.password === password)) {
+      console.error("Contraseña incorrecta");
       return;
     }
 
     if (!users.some(user => user.email === email)) {
+      console.error("Usuario no encontrado");
       return;
     }
 
@@ -59,7 +64,8 @@ const Login = () => {
       }
       const data = await response.json();
       setToken(data.email);
-      navigate('/');
+      localStorage.setItem("token", data.email);
+      Navigate("/");
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
     }

@@ -1,4 +1,3 @@
-// App.jsx
 import { UserContext } from './context/UserContext.js';
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
@@ -16,6 +15,7 @@ function App() {
     setToken(newToken);
     if (newToken) {
       localStorage.setItem('token', newToken);
+      console.log('User logged in successfully with token:', newToken);
     } else {
       localStorage.removeItem('token');
     }
@@ -36,9 +36,10 @@ function App() {
               </>
             ) : (
               <>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="login" element={<Login />} />
+                <Route path="register" element={<Register />} />
+                <Route path="*" element={<Navigate to="login" replace />} />
+
               </>
             )}
           </Routes>
