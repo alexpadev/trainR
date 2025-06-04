@@ -3,7 +3,7 @@ import { UserContext } from '../../context/UserContext.js';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const API = import.meta.env.VITE_API_URL || "https//localhost:3000/api";
+  const API = import.meta.env.VITE_API_URL || 'https://trainR.onrender.com/api';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
