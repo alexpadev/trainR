@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { UserContext } from '../../context/UserContext';
 
@@ -13,31 +13,7 @@ const Register = () => {
   });
   const { username, email, password, confirmPassword } = formData;
   const { setToken } = useContext(UserContext);
-
-  const [users, setUsers] = useState([]);
   const navigate = useNavigate();
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${API}/users`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      const data = await response.json();
-      setUsers(data);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -52,16 +28,6 @@ const Register = () => {
       return;
     }
 
-    if (users.some(user => user.email === email)) {
-      console.error("Email already exists");
-      return;
-    }
-
-    if (users.some(user => user.username === username)) {
-      console.error("This username is already taken");
-      return;
-    }
-
     try {
       const response = await fetch(`${API}/auth/register`, {
         method: 'POST',
@@ -71,12 +37,13 @@ const Register = () => {
         body: JSON.stringify({ username, email, password })
       });
       if (!response.ok) {
-        throw new Error('Registration failed');
+        const errorData = await response.json();
+        console.error("Registration failed:", errorData.message);
+        return;
       }
       const data = await response.json();
-      console.log("Registro completado con éxito:", data);
-      setToken(data.email);
-      localStorage.setItem("token", data.email);
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
       navigate('/');
     } catch (err) {
       console.error("Error al registrar:", err);

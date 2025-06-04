@@ -133,6 +133,8 @@ router.post('/', async (req, res) => {
       id: newWrId,
       message: 'Weekly routine creada correctamente',
     });
+
+    
   } catch (err) {
     console.error('Error creando weekly_routine:', err);
     if (err.code === '23505') {
