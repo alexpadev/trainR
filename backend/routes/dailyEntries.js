@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../database/db');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
-
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
+  const user_id = req.user.userId;
   try {
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT de.id,
              de.user_id,
              u.username AS usuario_nombre,
@@ -22,8 +24,11 @@ router.get('/', async (req, res) => {
       FROM daily_entries de
       LEFT JOIN users u ON de.user_id = u.id
       LEFT JOIN weekly_routines wr ON de.weekly_routine_id = wr.id
+      WHERE de.user_id = $1
       ORDER BY de.fecha DESC;
-    `);
+      `,
+      [user_id]
+    );
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -31,11 +36,47 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user.userId;
+  try {
+    const result = await pool.query(
+      `
+      SELECT de.id,
+             de.user_id,
+             u.username AS usuario_nombre,
+             de.fecha,
+             de.weekly_routine_id,
+             wr.routine_type,
+             de.desayuno,
+             de.comida,
+             de.merienda,
+             de.cena,
+             de.completed,
+             de.fecha_creacion,
+             de.fecha_actualizacion
+      FROM daily_entries de
+      LEFT JOIN users u ON de.user_id = u.id
+      LEFT JOIN weekly_routines wr ON de.weekly_routine_id = wr.id
+      WHERE de.id = $1 AND de.user_id = $2;
+      `,
+      [id, user_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Entrada diaria no encontrada' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(`Error obteniendo daily_entry ${id}:`, err);
+    res.status(500).json({ error: 'Error al consultar daily_entry' });
+  }
+});
 
-router.post('/', async (req, res) => {
-  const { user_id, fecha, weekly_routine_id, desayuno, comida, merienda, cena } = req.body;
-  if (!user_id || !fecha) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios: user_id o fecha' });
+router.post('/', authenticateToken, async (req, res) => {
+  const user_id = req.user.userId;
+  const { fecha, weekly_routine_id, desayuno, comida, merienda, cena } = req.body;
+  if (!fecha) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios: fecha' });
   }
 
   try {
@@ -50,24 +91,32 @@ router.post('/', async (req, res) => {
       fecha,
       weekly_routine_id || null,
       desayuno || null,
-      comida || null,
+      comida   || null,
       merienda || null,
-      cena || null,
+      cena     || null,
     ]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Error creando daily_entry:', err);
     if (err.code === '23505') {
-      return res.status(409).json({ error: 'Ya existe una entrada para ese usuario y fecha' });
+      return res.status(409).json({ error: 'Ya existe una entrada para esa fecha' });
     }
     res.status(500).json({ error: 'Error al crear daily_entry' });
   }
 });
 
-
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const user_id = req.user.userId;
   const { desayuno, comida, merienda, cena, completed } = req.body;
+
+  const existe = await pool.query(
+    `SELECT 1 FROM daily_entries WHERE id = $1 AND user_id = $2;`,
+    [id, user_id]
+  );
+  if (existe.rows.length === 0) {
+    return res.status(404).json({ error: 'Entrada diaria no encontrada' });
+  }
 
   if (
     desayuno === undefined &&
@@ -118,24 +167,30 @@ router.put('/:id', async (req, res) => {
 
   try {
     const result = await pool.query(updateQuery, values);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Entrada diaria no encontrada' });
-    }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(`Error actualizando daily_entry ${id}:`, err);
-    res.status(500).json({ error: 'Error al actualizar daily_entry' });
+    console.error(`Error actualizando la entrada diaria ${id}:`, err);
+    res.status(500).json({ error: 'Error al actualizar la entrada diaria' });
   }
 });
 
-
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const user_id = req.user.userId;
+
+  const existe = await pool.query(
+    `SELECT 1 FROM daily_entries WHERE id = $1 AND user_id = $2;`,
+    [id, user_id]
+  );
+  if (existe.rows.length === 0) {
+    return res.status(404).json({ error: 'Entrada diaria no encontrada o no autorizada' });
+  }
+
   try {
-    const result = await pool.query('DELETE FROM daily_entries WHERE id = $1 RETURNING *;', [id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Entrada diaria no encontrada o ya eliminada' });
-    }
+    const result = await pool.query(
+      'DELETE FROM daily_entries WHERE id = $1 RETURNING *;',
+      [id]
+    );
     res.json({ message: 'Entrada diaria eliminada correctamente', deleted: result.rows[0] });
   } catch (err) {
     console.error(`Error eliminando daily_entry ${id}:`, err);

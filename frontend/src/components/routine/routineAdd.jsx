@@ -5,20 +5,17 @@ const RoutineAdd = () => {
   const { dayOfWeek } = useParams();
   const navigate = useNavigate();
 
-    const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
-
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
 
   const [muscleGroups, setMuscleGroups] = useState([]);
   const [allExercises, setAllExercises] = useState([]);
-
   const [routineType, setRoutineType] = useState('upper');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
-  const [selectedExercises, setSelectedExercises] = useState([]); 
+  const [selectedExercises, setSelectedExercises] = useState([]);
   const [desayuno, setDesayuno] = useState('');
   const [almuerzo, setAlmuerzo] = useState('');
   const [merienda, setMerienda] = useState('');
   const [cena, setCena] = useState('');
-
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -89,7 +86,7 @@ const RoutineAdd = () => {
 
   const getDateForDayOfWeek = (targetDay) => {
     const today = new Date();
-    const offsetHoy = (today.getDay() + 6) % 7; 
+    const offsetHoy = (today.getDay() + 6) % 7;
     const offsetTarget = Number(targetDay) - 1; 
     const diff = offsetTarget - offsetHoy;
     const targetDate = new Date(today);
@@ -97,7 +94,7 @@ const RoutineAdd = () => {
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dd = String(targetDate.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`; 
+    return `${yyyy}-${mm}-${dd}`;
   };
 
   const rawDate = getDateForDayOfWeek(dayOfWeek);
@@ -124,9 +121,15 @@ const RoutineAdd = () => {
     }
 
     setSubmitting(true);
-    const user_id = Number(localStorage.getItem('user_id')) || 1;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No autenticado. Por favor haz login de nuevo.');
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
-      user_id,
       day_of_week: Number(dayOfWeek),
       routine_type: routineType,
       muscle_group_ids: selectedMuscleGroups,
@@ -135,7 +138,7 @@ const RoutineAdd = () => {
         series: e.series,
         repeticiones: e.repeticiones,
       })),
-      fecha: rawDate, 
+      fecha: rawDate,
       desayuno: desayuno || null,
       comida: almuerzo || null,
       merienda: merienda || null,
@@ -145,7 +148,10 @@ const RoutineAdd = () => {
     try {
       const res = await fetch(`${API}/weekly-routines`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {

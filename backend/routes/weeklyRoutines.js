@@ -1,31 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../database/db');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
-router.get('/', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT wr.id,
-             wr.user_id,
-             wr.day_of_week,
-             wr.routine_type,
-             wr.fecha_creacion,
-             wr.fecha_actualizacion,
-             u.username AS usuario_nombre
-      FROM weekly_routines wr
-      JOIN users u ON wr.user_id = u.id
-      ORDER BY wr.user_id, wr.day_of_week;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error obteniendo weekly_routines:', err);
-    res.status(500).json({ error: 'Error al consultar weekly_routines' });
-  }
-});
-
-
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
+router.get('/', authenticateToken, async (req, res) => {
+  const user_id = req.user.userId;
   try {
     const result = await pool.query(
       `
@@ -38,45 +17,71 @@ router.get('/:id', async (req, res) => {
              u.username AS usuario_nombre
       FROM weekly_routines wr
       JOIN users u ON wr.user_id = u.id
-      WHERE wr.id = $1;
+      WHERE wr.user_id = $1
+      ORDER BY wr.day_of_week;
       `,
-      [id]
+      [user_id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Weekly routine no encontrada' });
-    }
-    res.json(result.rows[0]);
+    res.json(result.rows);
   } catch (err) {
-    console.error(`Error obteniendo weekly_routine ${id}:`, err);
-    res.status(500).json({ error: 'Error al consultar weekly_routine' });
+    console.error('Error al obtener las rutinas:', err);
+    res.status(500).json({ error: 'Error al consultar las rutinas' });
   }
 });
 
+router.get('/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user.userId;
+  try {
+    const result = await pool.query(
+      `
+      SELECT wr.id,
+             wr.user_id,
+             wr.day_of_week,
+             wr.routine_type,
+             wr.fecha_creacion,
+             wr.fecha_actualizacion,
+             u.username AS usuario_nombre
+      FROM weekly_routines wr
+      JOIN users u ON wr.user_id = u.id
+      WHERE wr.id = $1 AND wr.user_id = $2;
+      `,
+      [id, user_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Rutina no encontrada' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(`Error al obtener la rutina con id ${id}:`, err);
+    res.status(500).json({ error: 'Error al consultar la rutina' });
+  }
+});
 
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
+  const user_id = req.user.userId;
   const {
-    user_id,
     day_of_week,
     routine_type,
-    muscle_group_ids, 
-    exercises,     
-    fecha,           
+    muscle_group_ids,
+    exercises,
+    fecha,
     desayuno,
     comida,
     merienda,
     cena,
   } = req.body;
 
-  if (!user_id || !day_of_week || !routine_type || !fecha) {
+  if (!day_of_week || !routine_type || !fecha) {
     return res
       .status(400)
-      .json({ error: 'Faltan campos obligatorios: user_id, day_of_week, routine_type, fecha' });
+      .json({ error: 'Faltan campos obligatorios: día de la semana, tipo de rutina o fecha' });
   }
   if (!Array.isArray(muscle_group_ids) || muscle_group_ids.length === 0) {
-    return res.status(400).json({ error: 'Debes enviar al menos un grupo muscular' });
+    return res.status(400).json({ error: 'Debes seleccionar al menos un grupo muscular' });
   }
   if (!Array.isArray(exercises) || exercises.length === 0) {
-    return res.status(400).json({ error: 'Debes enviar al menos un ejercicio con series y repeticiones' });
+    return res.status(400).json({ error: 'Debes seleccionar al menos un ejercicio con series y repeticiones' });
   }
 
   try {
@@ -90,18 +95,22 @@ router.post('/', async (req, res) => {
 
     for (const mgId of muscle_group_ids) {
       await pool.query(
-        `INSERT INTO weekly_routine_muscle_groups
+        `
+        INSERT INTO weekly_routine_muscle_groups
            (weekly_routine_id, muscle_group_id)
-         VALUES ($1, $2);`,
+        VALUES ($1, $2);
+        `,
         [newWrId, mgId]
       );
     }
 
     for (const ex of exercises) {
       await pool.query(
-        `INSERT INTO weekly_routine_exercises
+        `
+        INSERT INTO weekly_routine_exercises
            (weekly_routine_id, exercise_id, series, repeticiones)
-         VALUES ($1, $2, $3, $4);`,
+        VALUES ($1, $2, $3, $4);
+        `,
         [newWrId, ex.exercise_id, ex.series, ex.repeticiones]
       );
     }
@@ -123,41 +132,47 @@ router.post('/', async (req, res) => {
       user_id,
       fecha,
       newWrId,
-      desayuno   || null,
-      comida     || null,
-      merienda   || null,
-      cena       || null,
+      desayuno || null,
+      comida   || null,
+      merienda || null,
+      cena     || null,
     ]);
 
     return res.status(201).json({
       id: newWrId,
-      message: 'Weekly routine creada correctamente',
+      message: 'Rutina creada correctamente',
     });
-
-    
   } catch (err) {
-    console.error('Error creando weekly_routine:', err);
+    console.error('Error al crear la rutina:', err);
     if (err.code === '23505') {
       return res
         .status(409)
-        .json({ error: 'Ya existe una rutina para este user_id y day_of_week' });
+        .json({ error: 'Ya existe una rutina para este usuario y este día de la semana' });
     }
     if (err.code === '23503') {
-      return res.status(400).json({ error: 'FK inválido (user_id, exercise_id o muscle_group_id)' });
+      return res.status(400).json({ error: 'FK inválido (exercise_id o muscle_group_id)' });
     }
-    return res.status(500).json({ error: 'Error al crear weekly_routine' });
+    return res.status(500).json({ error: 'Error al crear la rutina' });
   }
 });
 
-
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const user_id = req.user.userId;
   const { day_of_week, routine_type } = req.body;
 
   if (!day_of_week && !routine_type) {
     return res
       .status(400)
-      .json({ error: 'Se requiere al menos uno de los campos: day_of_week o routine_type' });
+      .json({ error: 'Se requiere al menos uno de los campos: día de la semana o tipo de rutina' });
+  }
+
+  const existe = await pool.query(
+    `SELECT 1 FROM weekly_routines WHERE id = $1 AND user_id = $2;`,
+    [id, user_id]
+  );
+  if (existe.rows.length === 0) {
+    return res.status(404).json({ error: 'Rutina no encontrada' });
   }
 
   const fields = [];
@@ -182,39 +197,39 @@ router.put('/:id', async (req, res) => {
 
   try {
     const result = await pool.query(updateQuery, values);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Weekly routine no encontrada' });
-    }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(`Error actualizando weekly_routine ${id}:`, err);
+    console.error(`Error al actualizar la rutina con id ${id}:`, err);
     if (err.code === '23505') {
       return res
         .status(409)
-        .json({ error: 'Ya existe una rutina para este user_id y day_of_week' });
+        .json({ error: 'Ya existe una rutina para este usuario y día de la semana' });
     }
-    if (err.code === '23503') {
-      return res.status(400).json({ error: 'Algún dato de FK no existe' });
-    }
-    res.status(500).json({ error: 'Error al actualizar weekly_routine' });
+    res.status(500).json({ error: 'Error al actualizar la rutina' });
   }
 });
 
-
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const user_id = req.user.userId;
+
+  const existe = await pool.query(
+    `SELECT 1 FROM weekly_routines WHERE id = $1 AND user_id = $2;`,
+    [id, user_id]
+  );
+  if (existe.rows.length === 0) {
+    return res.status(404).json({ error: 'Rutina no encontrada o no autorizada' });
+  }
+
   try {
     const result = await pool.query(
       'DELETE FROM weekly_routines WHERE id = $1 RETURNING *;',
       [id]
     );
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Weekly routine no encontrada o ya eliminada' });
-    }
-    res.json({ message: 'Weekly routine eliminada correctamente', deleted: result.rows[0] });
+    res.json({ message: 'Rutina eliminada correctamente', deleted: result.rows[0] });
   } catch (err) {
-    console.error(`Error eliminando weekly_routine ${id}:`, err);
-    res.status(500).json({ error: 'Error al eliminar weekly_routine' });
+    console.error(`Error eliminando la rutina con id ${id}:`, err);
+    res.status(500).json({ error: 'Error al eliminar la rutina' });
   }
 });
 

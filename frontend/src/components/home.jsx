@@ -9,8 +9,9 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api"
-  
+  const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
+  const token = localStorage.getItem('token') || ''; 
+
   const getWeekDates = () => {
     const today = new Date();
     const offsetHoy = (today.getDay() + 6) % 7; 
@@ -50,11 +51,17 @@ const Home = () => {
     const fetchAll = async () => {
       try {
         setLoading(true);
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+
         const [wrRes, wrmgRes, wreRes, deRes] = await Promise.all([
-          fetch(`${API}/weekly-routines`),
-          fetch(`${API}/weekly-routine-muscle-groups`),
-          fetch(`${API}/weekly-routine-exercises`),
-          fetch(`${API}/daily-entries`),
+          fetch(`${API}/weekly-routines`, { headers }),
+          fetch(`${API}/weekly-routine-muscle-groups`, { headers }),
+          fetch(`${API}/weekly-routine-exercises`, { headers }),
+          fetch(`${API}/daily-entries`, { headers }),
         ]);
 
         if (!wrRes.ok || !wrmgRes.ok || !wreRes.ok || !deRes.ok) {
@@ -81,7 +88,7 @@ const Home = () => {
     };
 
     fetchAll();
-  }, []);
+  }, [API, token]);
 
   const routineByDay = {};
   weeklyRoutines.forEach((r) => {
@@ -131,7 +138,10 @@ const Home = () => {
     try {
       const res = await fetch(`${API}/daily-entries/${entryId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ completed: checked }),
       });
       if (!res.ok) {
@@ -158,6 +168,10 @@ const Home = () => {
         `${API}/weekly-routines/${routineIdToDelete}`,
         {
           method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
         }
       );
       if (!res.ok) {
@@ -335,11 +349,13 @@ const Home = () => {
                         onChange={(e) =>
                           dailyEntry && handleCheckboxChange(dailyEntry.id, e.target.checked)
                         }
-                        className={`h-5 w-5 ${
-                          dateStr === todayStr && dailyEntry
-                            ? 'text-green-500'
-                            : 'text-gray-500 cursor-not-allowed'
-                        }`}
+                        className={`
+                          h-5 w-5 ${
+                            dateStr === todayStr && dailyEntry
+                              ? 'text-green-500'
+                              : 'text-gray-500 cursor-not-allowed'
+                          }
+                        `}
                       />
                       <label className="ml-2 text-xs">
                         {dateStr === todayStr ? 'Completado' : 'No disponible'}
