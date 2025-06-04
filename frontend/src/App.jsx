@@ -10,6 +10,7 @@ import RoutineEdit from './components/routine/routineEdit.jsx';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(null)
 
   const updateToken = (newToken) => {
     setToken(newToken);
@@ -23,7 +24,7 @@ function App() {
 
   return (
     <div>
-      <UserContext.Provider value={{ token, setToken: updateToken }}>
+      <UserContext.Provider value={{ token, setToken: updateToken, user, setUser }}>
         <Router>
           {token !== null && <Header />}
           <Routes>
