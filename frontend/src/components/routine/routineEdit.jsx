@@ -6,7 +6,7 @@ const RoutineEdit = () => {
   const navigate = useNavigate();
 
   const API = import.meta.env.VITE_API_URL || "https://trainR.onrender.com/api";
-
+  const token = localStorage.getItem('token') || '';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,11 +16,11 @@ const RoutineEdit = () => {
 
   const [routineType, setRoutineType] = useState('upper');
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState([]);
-  const [selectedExercises, setSelectedExercises] = useState([]); 
+  const [selectedExercises, setSelectedExercises] = useState([]);
 
   const [dailyEntryId, setDailyEntryId] = useState(null);
   const [desayuno, setDesayuno] = useState('');
-  const [almuerzo, setAlmuerzo] = useState('');
+  const [comida, setComida] = useState('');  
   const [merienda, setMerienda] = useState('');
   const [cena, setCena] = useState('');
 
@@ -29,10 +29,12 @@ const RoutineEdit = () => {
       try {
         setLoading(true);
 
+      
         const [mgRes, exRes] = await Promise.all([
           fetch(`${API}/muscle-groups`),
-          fetch(`${API}/exercises`),
+          fetch(`${API}/exercises`)
         ]);
+
         if (!mgRes.ok || !exRes.ok) {
           throw new Error('Error cargando datos maestros');
         }
@@ -40,14 +42,33 @@ const RoutineEdit = () => {
         setMuscleGroups(mgData);
         setAllExercises(exData);
 
-        const wrRes = await fetch(`${API}/weekly-routines/${routineId}`);
+        const wrRes = await fetch(
+          `${API}/weekly-routines/${routineId}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
         if (!wrRes.ok) {
+          if (wrRes.status === 401 || wrRes.status === 403) {
+            throw new Error('No autorizado. Por favor inicia sesión de nuevo.');
+          }
           throw new Error('Rutina no encontrada');
         }
         const wrData = await wrRes.json();
         setRoutineType(wrData.routine_type);
 
-        const wrmgRes = await fetch(`${API}/weekly-routine-muscle-groups`);
+        const wrmgRes = await fetch(
+          `${API}/weekly-routine-muscle-groups`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
         if (!wrmgRes.ok) {
           throw new Error('Error cargando asociaciones de grupos musculares');
         }
@@ -57,7 +78,15 @@ const RoutineEdit = () => {
           .map((link) => Number(link.muscle_group_id));
         setSelectedMuscleGroups(myMgLinks);
 
-        const wreRes = await fetch(`${API}/weekly-routine-exercises`);
+        const wreRes = await fetch(
+          `${API}/weekly-routine-exercises`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
         if (!wreRes.ok) {
           throw new Error('Error cargando asociaciones de ejercicios');
         }
@@ -71,7 +100,15 @@ const RoutineEdit = () => {
           }));
         setSelectedExercises(myExLinks);
 
-        const deRes = await fetch(`${API}/daily-entries`);
+        const deRes = await fetch(
+          `${API}/daily-entries`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
         if (!deRes.ok) {
           throw new Error('Error cargando entradas diarias');
         }
@@ -87,7 +124,7 @@ const RoutineEdit = () => {
         if (match) {
           setDailyEntryId(Number(match.id));
           setDesayuno(match.desayuno || '');
-          setAlmuerzo(match.comida || '');
+          setComida(match.comida || '');    
           setMerienda(match.merienda || '');
           setCena(match.cena || '');
         }
@@ -101,7 +138,7 @@ const RoutineEdit = () => {
     };
 
     fetchData();
-  }, [routineId, date]);
+  }, [routineId, date, API, token]);
 
   const filteredMuscleGroups =
     routineType === 'fullbody'
@@ -161,17 +198,31 @@ const RoutineEdit = () => {
     }
 
     try {
-      const updateWR = await fetch(`${API}/weekly-routines/${routineId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ routine_type: routineType }),
-      });
+      const updateWR = await fetch(
+        `${API}/weekly-routines/${routineId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ routine_type: routineType }),
+        }
+      );
       if (!updateWR.ok) {
         const data = await updateWR.json();
         throw new Error(data.error || 'Error actualizando rutina');
       }
 
-      const wrmgRes = await fetch(`${API}/weekly-routine-muscle-groups`);
+      const wrmgRes = await fetch(
+        `${API}/weekly-routine-muscle-groups`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
       const wrmgData = await wrmgRes.json();
       const prevMgLinks = wrmgData.filter(
         (link) => Number(link.weekly_routine_id) === Number(routineId)
@@ -179,69 +230,112 @@ const RoutineEdit = () => {
       for (const link of prevMgLinks) {
         await fetch(
           `${API}/weekly-routine-muscle-groups/${routineId}/${link.muscle_group_id}`,
-          { method: 'DELETE' }
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
         );
       }
       for (const mgId of selectedMuscleGroups) {
-        await fetch(`${API}/weekly-routine-muscle-groups`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            weekly_routine_id: Number(routineId),
-            muscle_group_id: mgId,
-          }),
-        });
+        await fetch(
+          `${API}/weekly-routine-muscle-groups`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              weekly_routine_id: Number(routineId),
+              muscle_group_id: mgId,
+            }),
+          }
+        );
       }
 
-      const wreRes = await fetch(`${API}/weekly-routine-exercises`);
+      const wreRes = await fetch(
+        `${API}/weekly-routine-exercises`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
       const wreData = await wreRes.json();
       const prevExLinks = wreData.filter(
         (link) => Number(link.weekly_routine_id) === Number(routineId)
       );
       for (const link of prevExLinks) {
-        await fetch(`${API}/weekly-routine-exercises/${link.id}`, {
-          method: 'DELETE',
-        });
+        await fetch(
+          `${API}/weekly-routine-exercises/${link.id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
       }
       for (const ex of selectedExercises) {
-        await fetch(`${API}/weekly-routine-exercises`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            weekly_routine_id: Number(routineId),
-            exercise_id: ex.exercise_id,
-            series: ex.series,
-            repeticiones: ex.repeticiones,
-          }),
-        });
+        await fetch(
+          `${API}/weekly-routine-exercises`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              weekly_routine_id: Number(routineId),
+              exercise_id: ex.exercise_id,
+              series: ex.series,
+              repeticiones: ex.repeticiones,
+            }),
+          }
+        );
       }
 
       if (dailyEntryId) {
-        await fetch(`${API}/daily-entries/${dailyEntryId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            desayuno,
-            comida: almuerzo,
-            merienda,
-            cena,
-          }),
-        });
+        await fetch(
+          `${API}/daily-entries/${dailyEntryId}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              desayuno,
+              comida,
+              merienda,
+              cena,
+            }),
+          }
+        );
       } else {
-        const user_id = Number(localStorage.getItem('user_id')) || 1;
-        await fetch(`${API}/daily-entries`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id,
-            fecha: date,
-            weekly_routine_id: Number(routineId),
-            desayuno,
-            comida: almuerzo,
-            merienda,
-            cena,
-          }),
-        });
+        await fetch(
+          `${API}/daily-entries`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              fecha: date,
+              weekly_routine_id: Number(routineId),
+              desayuno,
+              comida,
+              merienda,
+              cena,
+            }),
+          }
+        );
       }
 
       navigate('/');
@@ -371,7 +465,6 @@ const RoutineEdit = () => {
                     key={exId}
                     className="bg-gray-600 p-3 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between"
                   >
-                  
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                       <span className="font-semibold text-gray-100">{ex.nombre}</span>
                       {tipoTexto && (
@@ -438,14 +531,14 @@ const RoutineEdit = () => {
               />
             </div>
             <div className="w-full md:w-1/2 mt-4 md:mt-0">
-              <label htmlFor="almuerzo" className="block mb-2 font-medium text-gray-200">
+              <label htmlFor="comida" className="block mb-2 font-medium text-gray-200">
                 Comida
               </label>
               <input
-                id="almuerzo"
+                id="comida"
                 type="text"
-                value={almuerzo}
-                onChange={(e) => setAlmuerzo(e.target.value)}
+                value={comida}
+                onChange={(e) => setComida(e.target.value)}
                 placeholder="Ej. Arroz con pollo"
                 className="w-full bg-gray-600 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
